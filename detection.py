@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import cv2
+
 # this is closely adapted from project 1
 class PlaneDetector:
 
