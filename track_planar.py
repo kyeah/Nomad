@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from detection import *
+from obj import OBJ
 import graphics
 
 def framesFromVideo(video):
@@ -34,6 +35,8 @@ def main():
 	trainingFrame = cv2.imread(trainingFrameFilename)
 	detector = PlaneDetector(trainingFrame)
 
+        humanoid = OBJ("humanoid_tri.obj")
+
 	for frameIndex, frame in enumerate(framesFromVideo(video)):
 		
 		print "processing frame %d" % frameIndex
@@ -51,9 +54,24 @@ def main():
 			for x in (0, w-1):
 				for y in (0, h-1):
 					yield (x, y)
+
+                h, w = trainingFrame.shape[:2]
 		corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
 
-		graphics.drawCorners(frame, corners)
+                # Remap to define corners clockwise
+                corners = [corners[0], corners[2], corners[3],corners[1]]
+
+                # Planarize corners to estimate head-on plane
+                p0, p1, p3 = corners[0], corners[1], corners[3]
+                w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
+                
+                planarized_corners = np.float32([p0,
+                                                 (p0[0] + w, p0[1]),
+                                                 (p0[0] + w, p0[1] + h),
+                                                 (p0[0], p0[1] + h)])
+                
+                # Test overlay with humanoid OBJ
+		graphics.drawOverlay(frame, planarized_corners, corners, humanoid)
 
 		writer.write(frame)
 		cv2.imshow("frame", frame)
