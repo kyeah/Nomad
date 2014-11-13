@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cv2
+import numpy as np
 
 # this is closely adapted from project 1
 class PlaneDetector:
@@ -38,7 +39,7 @@ class PlaneDetector:
         Return something, probably. A homography, perhaps?
         """
         kpA, descA = self.trainingFeatures
-        kbB, descB = self.findFeatures(frame)
+        kpB, descB = self.findFeatures(frame)
 
         # match the features
         matches = []
@@ -49,8 +50,8 @@ class PlaneDetector:
         assert len(matches) >= 4
 
         # compute homography
-        srcPoints = np.array([kpB[match.queryIdx].pt for match in matches])
-        dstPoints = np.array([kpA[match.trainIdx].pt for match in matches])
+        srcPoints = np.array([kpA[match.queryIdx].pt for match in matches])
+        dstPoints = np.array([kpB[match.trainIdx].pt for match in matches])
         homography, _ = cv2.findHomography(srcPoints, dstPoints, cv2.RANSAC, 5.0)
 
         return homography

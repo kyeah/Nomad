@@ -2,8 +2,10 @@
 
 import sys
 import cv2
+import numpy as np
 
 from detection import *
+import graphics
 
 def framesFromVideo(video):
 	while True:
@@ -15,6 +17,10 @@ def framesFromVideo(video):
 def outputFilename(inputFilename):
 	dot = inputFilename.rfind(".")
 	return "%s.out.%s" % (inputFilename[:dot], inputFilename[dot+1:])
+
+def applyHomography(homography, (x, y)):
+	trans = np.dot(homography, [x, y, 1])
+	return trans[:2] / trans[2]
 
 def main():
 	if len(sys.argv) < 3:
@@ -38,9 +44,23 @@ def main():
 			writer = cv2.VideoWriter(outputFilename(videoFilename), codec, 15.0, dim)
 			print "initializing writer with dimensions %d x %d" % dim
 
+		homography = detector.detect(frame)
+		
+		def getCorners(image):
+			h, w = image.shape[:2]
+			for x in (0, w-1):
+				for y in (0, h-1):
+					yield (x, y)
+		corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
+
+		graphics.drawCorners(frame, corners)
+
 		writer.write(frame)
 		cv2.imshow("frame", frame)
-		cv2.waitKey(1)
+		
+		if cv2.waitKey(1) & 0xFF == ord('q'):
+			print "quitting early!"
+			break
 
 	video.release()
 	video = None
