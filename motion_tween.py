@@ -7,4 +7,12 @@ class VideoTracker:
         pass
 
     def frames():
-        yield None
+        cap = cv2.VideoCapture(0)
+        retval, frame = cap.read()
+
+		while retval != 0:
+		    # return captured frame to the user
+		    yield frame
+
+		    # Capture next frame
+		    retval, frame = cap.read()
