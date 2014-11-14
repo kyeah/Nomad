@@ -3,6 +3,7 @@
 import sys
 import cv2
 import numpy as np
+from optparse import OptionParser
 
 from detection import *
 from obj import OBJ
@@ -24,10 +25,17 @@ def applyHomography(homography, (x, y)):
     return trans[:2] / trans[2]
 
 def main():
-    if len(sys.argv) < 4:
-        print "Usage: python track_planar.py <video> <trainingFrame> <object>"
+
+    parser = OptionParser(usage="usage: %prog [options] video trainingFrame")
+    parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
+    parser.add_option("-c", "--corners", dest="corners", action="store_true", help="show the corners of the tracked planar surface")
+    options, args = parser.parse_args()
+
+    if len(args) != 2:
+        parser.print_help()
         return
-    videoFilename, trainingFrameFilename, objectFilename = sys.argv[1:]
+
+    videoFilename, trainingFrameFilename = args
 
     video = cv2.VideoCapture(videoFilename)
     codec = cv2.cv.CV_FOURCC(*"mp4v")
@@ -35,7 +43,7 @@ def main():
     trainingFrame = cv2.imread(trainingFrameFilename)
     detector = PlaneDetector(trainingFrame)
 
-    overlay = OBJ(objectFilename)
+    overlay = OBJ(options.obj) if options.obj is not None else None
 
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
@@ -59,7 +67,8 @@ def main():
         corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
 
         # draw tracked corners
-        graphics.drawCorners(frame, corners)
+        if options.corners:
+            graphics.drawCorners(frame, corners)
 
         # Remap to define corners clockwise
         corners = [corners[0], corners[2], corners[3],corners[1]]
@@ -75,7 +84,9 @@ def main():
             (p0[0], p0[1] + h)
         ])
                 
-        graphics.drawOverlay(frame, planarized_corners, corners, overlay)
+        # Draw 3D object overlay
+        if overlay is not None:
+            graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
         writer.write(frame)
         cv2.imshow("frame", frame)
