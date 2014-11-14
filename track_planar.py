@@ -57,6 +57,10 @@ def main():
 
         homography = detector.detect(frame)
         
+        if len(np.flatnonzero(homography)) == 0:
+            print "encountered zero homography! Skipping frame."
+            continue
+
         def getCorners(image):
             h, w = image.shape[:2]
             for x in (0, w-1):
