@@ -47,16 +47,13 @@ class OBJ:
         
     def normalizeVerts(self):
         max_val = 1
-        max_z = 2
         for v in self.vertices:
             if max_val < v[0]:
                 max_val = v[0]
             if max_val < v[1]:
                 max_val = v[1]
-            if max_z < v[2]:
-                max_z = v[2]
 
         for v in self.vertices:
             v[0] /= max_val
             v[1] /= max_val
-            v[2] = 2 * v[2] / max_z
+            v[2] /= max_val

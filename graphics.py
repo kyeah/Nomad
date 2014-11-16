@@ -51,7 +51,8 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
                 
         # Map normalized verts onto surface plane
         verts = np.float32(obj.vertices)
-        obj_verts = verts * [surface_w, surface_h, 0.5 * surface_w] + [xi0, yi0, 0]
+        scale = max(surface_w, surface_h)
+        obj_verts = verts * [scale, scale, 0.5 * scale] + [xi0, yi0, 0]
         mapped_verts = cv2.projectPoints(obj_verts, rot, trans, H, distort_coeff)[0].reshape(-1, 2)
         
         # Draw object faces
