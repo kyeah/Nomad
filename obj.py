@@ -59,4 +59,4 @@ class OBJ:
         for v in self.vertices:
             v[0] /= max_val
             v[1] /= max_val
-            v[2] /= max_z
+            v[2] = 2 * v[2] / max_z

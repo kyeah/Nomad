@@ -83,7 +83,7 @@ def angle_between(v1, v2):
 
 class ArbitraryPlaneDetector:
 
-    def detect(self, frame, same_corner_threshold_dist=20, same_side_threshold_angle=0.52):
+    def detect(self, frame, same_corner_threshold_dist=20, same_side_threshold_angle=0.52, viz=False):
         """
         Detects arbitrary planes in a frame.
           1. Canny Edge Detection on blurred grayscale image
@@ -97,82 +97,87 @@ class ArbitraryPlaneDetector:
           same_side_threshold_angle: Minimum angle between two vectors to consider them the same side (default: ~30 degrees)
         """
 
+        # TODO: Modularize mathematical computations to make code easier to read
+
         # 1. Canny Edge Detection
+        # Todo: Manual gaussian kernel modification to account for different environments
         gframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gframe = cv2.GaussianBlur(gframe, (5, 5), 0)
         edges = cv2.Canny(gframe, 50, 150)
+        edges = cv2.dilate(edges, (-1,-1))
 
         # 2. External contours
         contours, hierarchy = cv2.findContours(edges,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        for contour in contours:
-            cv2.drawContours(frame, contour, -1, (255, 255, 0), 10)
+        if viz:
+            for contour in contours:
+                cv2.drawContours(frame, contour, -1, (255, 255, 0), 10)
 
-        # 3. Estimate the largest contour
-        #bounds = [cv2.boundingRect(cnt) for cnt in contours]
-        #areas = [b[2] * b[3] for b in bounds]
+        # 3. Estimate the most rectangular contour
+        rect = np.array([[[0, 0]], [[150, 0]], [[150, 300]], [[0, 300]]])
+
+        # Return default rectangle if no contours found; todo: retain previous contour state
         if not contours:
-            return [[1,1], [2,1], [2,2], [1,2]]
+            return rect
 
-        #cnt_idx = areas.index(max(areas))
-        #num_pts = [len(contour) for contour in contours]
-        #cnt_idx = num_pts.index(max(num_pts))
-        rect = np.array([[[0, 0]], [[200, 0]], [[200, 200]], [[0, 200]]])
-        hu_moments = [cv2.matchShapes(contour, rect, 1, 0.0) for contour in contours]
-        cnt_idx = hu_moments.index(min(hu_moments))
-        largestContour = contours[cnt_idx]  # May be better to continuously pick and do pairwise dist check until you get contour w/ at least 4 pts
+        approxCurve = []
+        hu_moments = [cv2.matchShapes(contour, rect, 2, 0.0) for contour in contours]
+        
+        while len(approxCurve) < 4 and contours:
+            cnt_idx = hu_moments.index(min(hu_moments))
+            hu_moments.pop(cnt_idx)
 
-        # Approximate contour as quad region with 4 corners
-        epsilon = 3
-        approxCurve = cv2.approxPolyDP(largestContour, epsilon, True)
+            bestContour = contours.pop(cnt_idx)
 
-        cv2.drawContours(frame, largestContour, -1, (0, 255, 0), 10)
+            # Approximate contour as quad region with 4 corners
+            approxCurve = cv2.approxPolyDP(bestContour, epsilon=3, closed=True)
+            
+            if viz:
+                cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
+            
+            approxCurve = map(lambda x: x[0], approxCurve)
+            
+            # Pairwise distance check; rejects contain rejected points.
+            # Tuple conversion allows us to use 'pair in rejects' check.
+            pt_pairs = itertools.combinations(approxCurve, 2)
+            rejects = []
+            
+            for pair in pt_pairs:
+                tpair = map(lambda pt: tuple(pt), pair)
+                if tpair[0] in rejects or tpair[1] in rejects:
+                    continue
+                    
+                # Distance test
+                d = np.linalg.norm(pair[1] - pair[0])
+                if d < same_corner_threshold_dist:
+                    rejects.append(tpair[1])
 
-        approxCurve = map(lambda x: x[0], approxCurve)
+            approxCurve = np.array([pt for pt in approxCurve if tuple(pt) not in rejects])
 
-        # Pairwise distance check; rejects contain rejected points.
-        # Tuple conversion allows us to use 'pair in rejects' check.
-        pt_pairs = itertools.combinations(approxCurve, 2)
-        rejects = []
-
-        for pair in pt_pairs:
-            tpair = map(lambda pt: tuple(pt), pair)
-            if tpair[0] in rejects or tpair[1] in rejects:
-                continue
-
-            # Distance test
-            d = np.linalg.norm(pair[1] - pair[0])
-            if d < same_corner_threshold_dist:
-                rejects.append(tpair[1])
-
-        approxCurve = np.array([pt for pt in approxCurve if tuple(pt) not in rejects])
-
-        for pt in approxCurve:
-            cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
+        if viz:
+            for pt in approxCurve:
+                cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
 
         # Check each pair of connected sides for commonality.
         # Again, tuple conversion allows us to check array containment easily.
+        # Should this check be done if we already have 4 points? Maybe. Might get rid of false quads.
         pt_triplets = itertools.combinations(approxCurve, 3)
         rejects = []
             
         for triplet in pt_triplets:
             tuplet = map(lambda x: tuple(x), triplet)
-            if tuplet[0] in rejects or \
-               tuplet[1] in rejects or \
-               tuplet[2] in rejects:
+            if any(map(lambda pt: pt in rejects, tuplet)):
                 continue
                 
-            p1, p2, p3 = triplet[0], triplet[1], triplet[2]            
+            p1, p2, p3 = triplet
             v1, v2 = unit_vector(p2 - p1), unit_vector(p3 - p2)
             angle = angle_between(v1, v2)
 
-            # Angle Test
-            if angle < same_side_threshold_angle:
-                rejects.append(tuplet[1])
-
-            # Reverse-Angle Test
-            elif abs(np.pi - angle) < same_side_threshold_angle:
-                rejects.append(tuplet[2])
+            # Angle, Reverse-angle Test
+            # If the three lines are roughly coplanar, find the longest line and remove the middle point.
+            if angle < same_side_threshold_angle or abs(np.pi - angle) < same_side_threshold_angle:
+                distances = map(lambda idx: np.linalg.norm((idx+1) % 3 - (idx+2) % 3), xrange(3))
+                rejects.append(distances.index(max(distances)))
             
             # Short-circuit if done
             if len(approxCurve) - len(rejects) == 4:
@@ -192,12 +197,12 @@ class ArbitraryPlaneDetector:
             # Find hypotenuse, then find last corner
             c1, c2, c3 = approxCurve[0], approxCurve[1], approxCurve[2]
             d1, d2, d3 = np.linalg.norm(c2 - c1), np.linalg.norm(c3 - c1), np.linalg.norm(c3 - c2)
+            # todo: ...finish this
 
-        # Fill in with bad points for now
+        # Last resorts: if not enough points, replicate; if too many points, truncate.
         while len(approxCurve) < 4:
             approxCurve = np.vstack([approxCurve, approxCurve[len(approxCurve) - 1]])
 
-        # Truncate for now
         approxCurve = approxCurve[:4]
 
         # Organize corners into clockwise rotation

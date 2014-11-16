@@ -26,32 +26,39 @@ def applyHomography(homography, (x, y)):
 
 def main():
 
-    parser = OptionParser(usage="usage: %prog [options] video trainingFrame")
+    parser = OptionParser(usage="usage: %prog [options] [video] [trainingFrame] (video and trainingFrame required if not streaming)")
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
     parser.add_option("-c", "--corners", dest="corners", action="store_true", help="show the corners of the tracked planar surface")
+    parser.add_option("-s", "--stream", dest="stream", action="store_true", help="stream live video and auto-detect planar surfaces")
     options, args = parser.parse_args()
 
-    if len(args) != 2:
-        parser.print_help()
-        return
+    streaming = options.stream is not None
 
-    videoFilename, trainingFrameFilename = args
+    videoSource = detector = None
+    if streaming:
+        videoSource = 0
+        detector = ArbitraryPlaneDetector()
 
-    #video = cv2.VideoCapture(videoFilename)
-    video = cv2.VideoCapture(0)
+    else:
+        if len(args) != 2:
+            parser.print_help()
+            return
+
+        videoSource, trainingFrameFilename = args
+        trainingFrame = cv2.imread(trainingFrameFilename)
+        detector = PlaneDetector(trainingFrame)
+
+    video = cv2.VideoCapture(videoSource)
     codec = cv2.cv.CV_FOURCC(*"mp4v")
     writer = None
-    trainingFrame = cv2.imread(trainingFrameFilename)
-    detector = PlaneDetector(trainingFrame)
 
     overlay = OBJ(options.obj) if options.obj is not None else None
+    showCorners = options.corners is not None
 
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
         print "processing frame %d" % frameIndex
-
-        d = ArbitraryPlaneDetector()
-        corners = d.detect(frame)
+        corners = detector.detect(frame)
 
         """
         # need the dimensions of the first frame to initialize the video writer
@@ -98,12 +105,11 @@ def main():
         if overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
-        graphics.drawCorners(frame, corners)
+        if showCorners:
+            graphics.drawCorners(frame, corners)
 
         #writer.write(frame)
         cv2.imshow("frame", frame)
-        #        cv2.waitKey()
-        #        cv2.destroyAllWindows()
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print "quitting early!"
