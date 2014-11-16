@@ -37,7 +37,8 @@ def main():
 
     videoFilename, trainingFrameFilename = args
 
-    video = cv2.VideoCapture(videoFilename)
+    #video = cv2.VideoCapture(videoFilename)
+    video = cv2.VideoCapture(0)
     codec = cv2.cv.CV_FOURCC(*"mp4v")
     writer = None
     trainingFrame = cv2.imread(trainingFrameFilename)
@@ -49,6 +50,10 @@ def main():
         
         print "processing frame %d" % frameIndex
 
+        d = ArbitraryPlaneDetector()
+        corners = d.detect(frame)
+
+        """
         # need the dimensions of the first frame to initialize the video writer
         if writer is None:
             dim = tuple(frame.shape[:2][::-1])
@@ -76,6 +81,7 @@ def main():
 
         # Remap to define corners clockwise
         corners = [corners[0], corners[2], corners[3],corners[1]]
+        """
 
         # Planarize corners to estimate head-on plane
         p0, p1, p3 = corners[0], corners[1], corners[3]
@@ -92,9 +98,13 @@ def main():
         if overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
-        writer.write(frame)
+        graphics.drawCorners(frame, corners)
+
+        #writer.write(frame)
         cv2.imshow("frame", frame)
-        
+        #        cv2.waitKey()
+        #        cv2.destroyAllWindows()
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print "quitting early!"
             break
