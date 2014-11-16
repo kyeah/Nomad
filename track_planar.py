@@ -58,37 +58,38 @@ def main():
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
         print "processing frame %d" % frameIndex
-        corners = detector.detect(frame)
 
-        """
         # need the dimensions of the first frame to initialize the video writer
-        if writer is None:
+        if writer is None and not streaming:
             dim = tuple(frame.shape[:2][::-1])
-            writer = cv2.VideoWriter(outputFilename(videoFilename), codec, 15.0, dim)
+            writer = cv2.VideoWriter(outputFilename(videoSource), codec, 15.0, dim)
             print "initializing writer with dimensions %d x %d" % dim
 
-        homography = detector.detect(frame)
+        corners = None
+        if streaming:
+            corners = detector.detect(frame)
+        else:
+            homography = detector.detect(frame)
         
-        if len(np.flatnonzero(homography)) == 0:
-            print "encountered zero homography! Skipping frame."
-            continue
+            if len(np.flatnonzero(homography)) == 0:
+                print "encountered zero homography! Skipping frame."
+                continue
 
-        def getCorners(image):
-            h, w = image.shape[:2]
-            for x in (0, w-1):
-                for y in (0, h-1):
-                    yield (x, y)
+            def getCorners(image):
+                h, w = image.shape[:2]
+                for x in (0, w-1):
+                    for y in (0, h-1):
+                        yield (x, y)
 
-        h, w = trainingFrame.shape[:2]
-        corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
+            h, w = trainingFrame.shape[:2]
+            corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
+
+            # Remap to define corners clockwise
+            corners = [corners[0], corners[2], corners[3],corners[1]]
 
         # draw tracked corners
         if options.corners:
             graphics.drawCorners(frame, corners)
-
-        # Remap to define corners clockwise
-        corners = [corners[0], corners[2], corners[3],corners[1]]
-        """
 
         # Planarize corners to estimate head-on plane
         p0, p1, p3 = corners[0], corners[1], corners[3]
@@ -105,10 +106,9 @@ def main():
         if overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
-        if showCorners:
-            graphics.drawCorners(frame, corners)
+        if not streaming:
+            writer.write(frame)
 
-        #writer.write(frame)
         cv2.imshow("frame", frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
