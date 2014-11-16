@@ -123,7 +123,7 @@ class ArbitraryPlaneDetector:
         if c4[0] > c3[0]: c3, c4 = c4, c3
         return [c1, c2, c3, c4]
 
-    def detect(self, frame, gaussian_kernal=(15, 15), alpha=20, beta=0.52, viz=False):
+    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=False):
         """
         Detects arbitrary planes in a frame.
           1. Canny Edge Detection on blurred grayscale image
@@ -144,7 +144,7 @@ class ArbitraryPlaneDetector:
 
         # 1. Canny Edge Detection
         gframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gframe = cv2.GaussianBlur(gframe, gaussian_kernal, 0)
+        gframe = cv2.GaussianBlur(gframe, gaussian_kernel, 0)
         edges = cv2.Canny(gframe, 50, 150)
         edges = cv2.dilate(edges, (-1,-1))
 

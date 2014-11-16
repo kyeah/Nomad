@@ -24,6 +24,9 @@ def applyHomography(homography, (x, y)):
     trans = np.dot(homography, [x, y, 1])
     return trans[:2] / trans[2]
 
+def null_callback(x):
+    pass
+
 def main():
 
     parser = OptionParser(usage="usage: %prog [options] [video] [trainingFrame] (video and trainingFrame required if not streaming)")
@@ -38,6 +41,8 @@ def main():
     if streaming:
         videoSource = 0
         detector = ArbitraryPlaneDetector()
+        cv2.namedWindow("Stream")
+        cv2.createTrackbar("Gaussian Kernel", 'Stream', 7, 15, null_callback)
 
     else:
         if len(args) != 2:
@@ -67,7 +72,8 @@ def main():
 
         corners = None
         if streaming:
-            corners = detector.detect(frame)
+            kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream') + 1
+            corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
         else:
             homography = detector.detect(frame)
         
