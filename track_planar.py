@@ -34,6 +34,7 @@ def main():
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
     parser.add_option("-c", "--corners", dest="corners", action="store_true", help="show the corners of the tracked planar surface")
     parser.add_option("-s", "--stream", dest="stream", action="store_true", help="stream live video and auto-detect planar surfaces")
+    parser.add_option("-n", "--no-write", dest="nowrite", action="store_true", help="skip writing video file (for systems that don't support it)")
     options, args = parser.parse_args()
 
     videoSource = None
@@ -69,7 +70,7 @@ def main():
         frame_copy = np.array(frame)
         
         # need the dimensions of the first frame to initialize the video writer
-        if writer is None and not options.stream:
+        if writer is None and not options.nowrite:
             dim = tuple(frame.shape[:2][::-1])
             writer = cv2.VideoWriter(outputFilename(videoSource), codec, 15.0, dim)
             print "initializing writer with dimensions %d x %d" % dim
@@ -126,7 +127,7 @@ def main():
         if plane and overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
-        if not options.stream:
+        if not options.nowrite:
             writer.write(frame)
 
         cv2.imshow("frame", frame)
@@ -147,8 +148,9 @@ def main():
 
     video.release()
     video = None
-    writer.release()
-    writer = None
+    if not options.nowrite:
+        writer.release()
+        writer = None
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
