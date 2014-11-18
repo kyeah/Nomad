@@ -47,7 +47,7 @@ def main():
     overlay = OBJ(options.obj) if options.obj is not None else None
 
     if options.stream:
-        videoSource = 0
+        videoSource = args[0] if args else 0
         detector = ArbitraryPlaneDetector()
         cv2.namedWindow("Stream Options")
         cv2.createTrackbar("Gaussian Kernel", 'Stream Options', 7, 15, null_callback)
