@@ -5,60 +5,6 @@ import itertools
 import numpy as np
 import vectormath as vmath
 
-# this is closely adapted from project 1
-class PlaneDetector:
-
-    def __init__(self, trainingFrame):
-        self.trainingFrame = trainingFrame
-        self.trainingFeatures = self.findFeatures(trainingFrame)
-
-    def findFeatures(self, frame):
-        kp, desc = cv2.SIFT().detectAndCompute(frame, None)
-        return kp, desc
-
-    def matchFeatures(self, descQuery, descTraining, ratio=0.7):
-        def filterKNN(matches, ratio):
-            def criterion(match):
-                a, b = match
-                return a.distance < ratio * b.distance
-            return [m[0] for m in filter(criterion, matches)]
-
-        FLANN_INDEX_KDTREE = 0
-        index_params = {
-            "algorithm": FLANN_INDEX_KDTREE,
-            "trees": 5
-        }
-        search_params = {
-            "checks": 50
-        }
-        flann = cv2.FlannBasedMatcher(index_params, search_params)
-        matches = flann.knnMatch(descQuery, descTraining, k=2)
-
-        return filterKNN(matches, ratio)
-
-    def detect(self, frame):
-        """
-        Return something, probably. A homography, perhaps?
-        """
-        kpA, descA = self.trainingFeatures
-        kpB, descB = self.findFeatures(frame)
-
-        # match the features
-        matches = []
-        for ratio in [0.7, 0.75, 0.8, 0.85]:
-            matches = self.matchFeatures(descA, descB, ratio)
-            if len(matches) >= 4:
-                break
-        assert len(matches) >= 4
-
-        # compute homography
-        srcPoints = np.array([kpA[match.queryIdx].pt for match in matches])
-        dstPoints = np.array([kpB[match.trainIdx].pt for match in matches])
-        homography, _ = cv2.findHomography(srcPoints, dstPoints, cv2.RANSAC, 5.0)
-
-        return homography
-
-
 class ArbitraryPlaneDetector:
 
     def filter_corners(self, approxCurve, alpha):
@@ -123,7 +69,7 @@ class ArbitraryPlaneDetector:
         if c4[0] > c3[0]: c3, c4 = c4, c3
         return [c1, c2, c3, c4]
 
-    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=False):
+    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=True):
         """
         Detects arbitrary planes in a frame.
           1. Canny Edge Detection on blurred grayscale image
@@ -163,7 +109,7 @@ class ArbitraryPlaneDetector:
         approxCurve = []
         rect = np.array([[[0, 0]], [[150, 0]], [[150, 300]], [[0, 300]]])
         hu_moments = [cv2.matchShapes(contour, rect, 2, 0.0) for contour in contours]
-        
+
         while len(approxCurve) < 4 and contours:
             cnt_idx = hu_moments.index(min(hu_moments))
             bestContour = contours.pop(cnt_idx)
@@ -171,7 +117,7 @@ class ArbitraryPlaneDetector:
 
             if viz:
                 cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
-            
+
             # Approximate contour as a polygon
             approxCurve = cv2.approxPolyDP(bestContour, epsilon=3, closed=True)            
             approxCurve = map(lambda x: x[0], approxCurve)

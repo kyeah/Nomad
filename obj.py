@@ -1,5 +1,5 @@
 class OBJ:
-    def __init__(self, filename, swapyz=False):
+    def __init__(self, filename, swapyz=True):
         """Loads a Wavefront OBJ file. """
         self.vertices = []
         self.normals = []

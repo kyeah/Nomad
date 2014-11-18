@@ -6,6 +6,7 @@ import numpy as np
 from optparse import OptionParser
 
 from detection import *
+from tracking import *
 from obj import OBJ
 import graphics
 
@@ -35,14 +36,21 @@ def main():
     parser.add_option("-s", "--stream", dest="stream", action="store_true", help="stream live video and auto-detect planar surfaces")
     options, args = parser.parse_args()
 
-    streaming = options.stream is not None
+    videoSource = None
+    detector = None
+    tracker = None
+    writer = None
+    plane = None
+    corners = None
 
-    videoSource = detector = None
-    if streaming:
+    codec = cv2.cv.CV_FOURCC(*"mp4v")
+    overlay = OBJ(options.obj) if options.obj is not None else None
+
+    if options.stream:
         videoSource = 0
         detector = ArbitraryPlaneDetector()
-        cv2.namedWindow("Stream")
-        cv2.createTrackbar("Gaussian Kernel", 'Stream', 7, 15, null_callback)
+        cv2.namedWindow("Stream Options")
+        cv2.createTrackbar("Gaussian Kernel", 'Stream Options', 7, 15, null_callback)
 
     else:
         if len(args) != 2:
@@ -51,31 +59,38 @@ def main():
 
         videoSource, trainingFrameFilename = args
         trainingFrame = cv2.imread(trainingFrameFilename)
-        detector = PlaneDetector(trainingFrame)
+        tracker = GenericTracker(trainingFrame)
 
     video = cv2.VideoCapture(videoSource)
-    codec = cv2.cv.CV_FOURCC(*"mp4v")
-    writer = None
-
-    overlay = OBJ(options.obj) if options.obj is not None else None
-    showCorners = options.corners is not None
 
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
         print "processing frame %d" % frameIndex
-
+        frame_copy = np.array(frame)
+        
         # need the dimensions of the first frame to initialize the video writer
-        if writer is None and not streaming:
+        if writer is None and not options.stream:
             dim = tuple(frame.shape[:2][::-1])
             writer = cv2.VideoWriter(outputFilename(videoSource), codec, 15.0, dim)
             print "initializing writer with dimensions %d x %d" % dim
 
-        corners = None
-        if streaming:
-            kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream') + 1
-            corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
+        if options.stream:
+            kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream Options') + 1
+            if not plane:
+                # Detect a plane
+                corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
+            else:
+                # Track current plane
+                homography = tracker.track(frame)
+                
+                if len(np.flatnonzero(homography)) == 0:
+                    print "encountered zero homography! Skipping frame."
+                    continue
+
+                corners = [applyHomography(homography, point) for point in plane.init_corners]
+
         else:
-            homography = detector.detect(frame)
+            homography = tracker.track(frame)
         
             if len(np.flatnonzero(homography)) == 0:
                 print "encountered zero homography! Skipping frame."
@@ -87,37 +102,46 @@ def main():
                     for y in (0, h-1):
                         yield (x, y)
 
-            h, w = trainingFrame.shape[:2]
             corners = [applyHomography(homography, point) for point in getCorners(trainingFrame)]
 
             # Remap to define corners clockwise
             corners = [corners[0], corners[2], corners[3],corners[1]]
 
-        # draw tracked corners
+        # Draw tracked corners
         if options.corners:
             graphics.drawCorners(frame, corners)
 
         # Planarize corners to estimate head-on plane
         p0, p1, p3 = corners[0], corners[1], corners[3]
         w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
-        
+
         planarized_corners = np.float32([
             p0,
             (p0[0] + w, p0[1]),
             (p0[0] + w, p0[1] + h),
             (p0[0], p0[1] + h)
         ])
-                
+
         # Draw 3D object overlay
-        if overlay is not None:
+        if plane and overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
-        if not streaming:
+        if not options.stream:
             writer.write(frame)
 
         cv2.imshow("frame", frame)
+        key = cv2.waitKey(1) & 0xFF
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if key == ord('t'):
+            if plane:
+                # Remove tracking plane
+                plane = None
+            else:
+                # Track highlighted plane
+                plane = TrackedPlane(corners)
+                tracker = GenericTracker(frame_copy)
+
+        if key == ord('q'):
             print "quitting early!"
             break
 
