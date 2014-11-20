@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 import vectormath as vmath
 from miscmath import *
+from contour_merge import *
 import math
 
 # utility generator function that yields all the points in a contour as (x, y) tuples
@@ -15,9 +16,12 @@ def pointsFromContour(cnt):
 class ArbitraryPlaneDetector:
 
     previouslyReturned = None
+    costMode = "rect"
+    mergeMode = False
 
-    def __init__(self, costMode="rect"):
+    def __init__(self, costMode="rect", mergeMode=False):
         self.costMode = costMode
+        self.mergeMode = mergeMode
 
     def filter_corners(self, approxCurve, alpha):
         """
@@ -117,6 +121,12 @@ class ArbitraryPlaneDetector:
 
                 cv2.drawContours(frame, contour, -1, color, 10)
 
+                points = list(pointsFromContour(contour))
+                avgx = int(avg((x for x, y in points)))
+                avgy = int(avg((y for x, y in points)))
+                inv = tuple(map(lambda x: 255-x, color))
+                cv2.circle(frame, (avgx, avgy), 100, color, 5)
+
         # Return previous contour state if no contours found
         if not contours:
             print "returning previous corners because no contours found"
@@ -124,6 +134,10 @@ class ArbitraryPlaneDetector:
                 return self.previouslyReturned
             else:
                 return np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
+
+        # attempt to merge contours
+        if self.mergeMode:
+            contours = collapseContours(contours)
 
         # 3. Estimate the most rectangular contour
         approxCurve = []
@@ -135,13 +149,21 @@ class ArbitraryPlaneDetector:
 
         # this cost function is an average of the distances to the center of the frame for all points in the contour
         cx, cy = frame.shape[1]/2.0, frame.shape[0]/2.0
+        dim = max(frame.shape[0], frame.shape[1])
         def midDistCost(contour):
-            return avg((dist(x, y, cx, cy) for x, y in pointsFromContour(contour)))
+            return avg((dist(x, y, cx, cy) / dim for x, y in pointsFromContour(contour)))
 
         # computes linear combination of features
+        # note that the weights are inverted because we're doing a minimization. Large weights imply greater importance.
         def combinedCostFunction(*args):
             def fn(cnt):
-                return sum((weight*subFunc(cnt) for weight, subFunc in args))
+                total = 0
+                print "---"
+                for weight, subFunc in args:
+                    value = subFunc(cnt)
+                    total += value / float(weight)
+                    print "%s: %8.5f (weight=%.3f)" % (subFunc.__name__, value, weight)
+                return total
             return fn
 
         costFuncs = {
