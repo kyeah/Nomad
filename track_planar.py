@@ -143,6 +143,10 @@ def main():
         if plane and overlay is not None:
             graphics.drawOverlay(frame, planarized_corners, corners, overlay)
 
+        # write the frame number in the corner so the video can be matched to command line output
+        textCoords = frame.shape[1]-100, frame.shape[0]-40
+        cv2.putText(frame, str(frameIndex), textCoords, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
+
         if not options.nowrite:
             writer.write(frame)
 
