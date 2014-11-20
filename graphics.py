@@ -4,16 +4,17 @@ import cv2
 import numpy as np
 import math
 
-def drawCorners(frame, corners):
+def drawCorners(frame, corners, color):
     """
     Draws the corners of a tracked rectangluar planar surface denoted by the
     list of corners as (x, y) coordinates in the frames. Returns the
     frame (though there is no promise of not modifying the frame passed in).
     """
 
+    print "corners: ", corners
     for x, y in corners:
         x, y = int(x), int(y)
-        cv2.circle(frame, (x, y), 10, (0, 0, 255), 3, 8, 0)
+        cv2.circle(frame, (x, y), 10, color, 3, 8, 0)
 
     pass
 
