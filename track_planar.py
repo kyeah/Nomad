@@ -11,6 +11,10 @@ from obj import OBJ
 from filtering import *
 import graphics
 
+
+drawing = False
+drawingOverlay = None
+
 def framesFromVideo(video):
     while True:
         ret, frame = video.read()
@@ -29,7 +33,19 @@ def applyHomography(homography, (x, y)):
 def null_callback(x):
     pass
 
+def paint_mouse(event, x, y, flags, param):
+    global drawing, drawingOverlay
+
+    if event == cv2.EVENT_LBUTTONDOWN:
+        drawing = True
+    elif event == cv2.EVENT_LBUTTONUP:
+        drawing = False
+
+    if drawing:
+        cv2.circle(drawingOverlay, (x,y), 3, (0,255,255), -1)
+
 def main():
+    global drawing, drawingOverlay
 
     parser = OptionParser(usage="usage: %prog [options] [video] [trainingFrame] (video and trainingFrame required if not streaming)")
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
@@ -68,12 +84,17 @@ def main():
         tracker = GenericTracker(trainingFrame)
 
     video = cv2.VideoCapture(videoSource)
+    cv2.namedWindow("frame")
+    cv2.setMouseCallback("frame", paint_mouse)
 
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
         print "processing frame %d" % frameIndex
         frame_copy = np.array(frame)
         
+        if frameIndex == 0:
+            drawingOverlay = np.zeros_like(frame)
+
         # need the dimensions of the first frame to initialize the video writer
         if writer is None and not options.nowrite:
             dim = tuple(frame.shape[:2][::-1])
@@ -147,10 +168,16 @@ def main():
         textCoords = frame.shape[1]-100, frame.shape[0]-40
         cv2.putText(frame, str(frameIndex), textCoords, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
 
-        if not options.nowrite:
-            writer.write(frame)
+        # Draw paint overlay
+        f = np.zeros_like(frame)
+        f += drawingOverlay
+        for c in range(0,3):
+            f[:,:, c] += frame[:,:, c] * (1 - drawingOverlay[:,:,2]/255.0)
 
-        cv2.imshow("frame", frame)
+        if not options.nowrite:
+            writer.write(f)
+
+        cv2.imshow("frame", f)
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('t'):
