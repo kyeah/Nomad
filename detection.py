@@ -4,10 +4,14 @@ import cv2
 import itertools
 import numpy as np
 import vectormath as vmath
+import math
 
 class ArbitraryPlaneDetector:
 
     previouslyReturned = None
+
+    def __init__(self, costMode="rect"):
+        self.costMode = costMode
 
     def filter_corners(self, approxCurve, alpha):
         """
@@ -114,12 +118,46 @@ class ArbitraryPlaneDetector:
         # 3. Estimate the most rectangular contour
         approxCurve = []
         rect = np.array([[[0, 0]], [[150, 0]], [[150, 300]], [[0, 300]]])
-        hu_moments = [cv2.matchShapes(contour, rect, 2, 0.0) for contour in contours]
+        
+        # this cost function estimates how similar a contour is to a rectangle
+        def rectCost(contour):
+            return cv2.matchShapes(contour, rect, 2, 0.0)
+
+        # this cost function is an average of the distances to the center of the frame for all points in the contour
+        def midDistCost(contour):
+            cx, cy = frame.shape[1]/2.0, frame.shape[0]/2.0
+            def dist(x1, y1, x2, y2):
+                return math.sqrt((x1-x2)**2 + (y1-y2)**2)
+            def avg(gen):
+                total = 0
+                n = 0
+                for i in gen:
+                    total += i
+                    n += 1
+                return float(total) / float(n)
+            def points(cnt):
+                for pt in cnt[0]:
+                    yield (pt[0], pt[1])
+            return avg((dist(x, y, cx, cy) for x, y in points(contour)))
+
+        # computes linear combination of features
+        def combinedCostFunction(*args):
+            def fn(cnt):
+                return sum((weight*subFunc(cnt) for weight, subFunc in args))
+            return fn
+
+        costFuncs = {
+            "rect": rectCost,
+            "combined1": combinedCostFunction((1, midDistCost), (1, rectCost)),
+        }
+        
+        costFunction = costFuncs[self.costMode]
+        costs = [costFunction(contour) for contour in contours]
 
         while len(approxCurve) < 4 and contours:
-            cnt_idx = hu_moments.index(min(hu_moments))
+            cnt_idx = costs.index(min(costs))
             bestContour = contours.pop(cnt_idx)
-            hu_moments.pop(cnt_idx)
+            costs.pop(cnt_idx)
 
             if viz:
                 cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)

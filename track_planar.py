@@ -37,6 +37,7 @@ def main():
     parser.add_option("-s", "--stream", dest="stream", action="store_true", help="stream live video and auto-detect planar surfaces")
     parser.add_option("-n", "--no-write", dest="nowrite", action="store_true", help="skip writing video file (for systems that don't support it)")
     parser.add_option("-k", "--kalman", dest="kalman", action="store_true", help="use a Kalman Filter to smooth predicted corners")
+    parser.add_option("-f", "--costfunc", dest="costMode", default="rect", help="which cost function to use to evaluate contours")
     options, args = parser.parse_args()
 
     videoSource = None
@@ -52,7 +53,7 @@ def main():
 
     if options.stream:
         videoSource = args[0] if args else 0
-        detector = ArbitraryPlaneDetector()
+        detector = ArbitraryPlaneDetector(costMode=options.costMode)
         cv2.namedWindow("Stream Options")
         cv2.createTrackbar("Gaussian Kernel", 'Stream Options', 7, 15, null_callback)
 
