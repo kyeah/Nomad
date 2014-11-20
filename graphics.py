@@ -11,7 +11,6 @@ def drawCorners(frame, corners, color):
     frame (though there is no promise of not modifying the frame passed in).
     """
 
-    print "corners: ", corners
     for x, y in corners:
         x, y = int(x), int(y)
         cv2.circle(frame, (x, y), 10, color, 3, 8, 0)
