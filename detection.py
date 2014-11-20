@@ -9,8 +9,8 @@ import math
 
 # utility generator function that yields all the points in a contour as (x, y) tuples
 def pointsFromContour(cnt):
-    for pt in cnt[0]:
-        yield (pt[0], pt[1])
+    for pt in cnt:
+        yield (pt[0, 0], pt[0, 1])
 
 class ArbitraryPlaneDetector:
 
