@@ -113,6 +113,10 @@ class ArbitraryPlaneDetector:
         # 2. Find External contours
         contours, hierarchy = cv2.findContours(edges,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        # attempt to merge contours
+        if self.mergeMode:
+            contours = collapseContours(contours)
+
         if viz:
             for i, contour in enumerate(contours):
                 # draw each separate contour a different color
@@ -121,6 +125,7 @@ class ArbitraryPlaneDetector:
 
                 cv2.drawContours(frame, contour, -1, color, 10)
 
+                # draw a circle indicating the center of the contour (easier to identify multiple contours)
                 points = list(pointsFromContour(contour))
                 avgx = int(avg((x for x, y in points)))
                 avgy = int(avg((y for x, y in points)))
@@ -134,10 +139,6 @@ class ArbitraryPlaneDetector:
                 return self.previouslyReturned
             else:
                 return np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
-
-        # attempt to merge contours
-        if self.mergeMode:
-            contours = collapseContours(contours)
 
         # 3. Estimate the most rectangular contour
         approxCurve = []
@@ -177,6 +178,7 @@ class ArbitraryPlaneDetector:
             "middist": midDistCost,
             "area": areaCost,
             "combined1": combinedCostFunction((1, midDistCost), (1, rectCost), (1, areaCost)),
+            "combined2": combinedCostFunction((1, midDistCost), (1, areaCost))
         }
 
         costFunction = costFuncs[self.costMode]

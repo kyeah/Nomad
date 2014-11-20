@@ -65,22 +65,16 @@ def collapseContours(contours):
 	combining some contours that seem to go together to make rectangles.
 	"""
 
-	i = 0
-	ret = []
-	while i < len(contours)-1:
-		a, b = contours[i:i+2]
+	i = 1
+	ret = contours[:1]
+	for i in range(len(contours)):
+		a, b = ret[-1], contours[i]
 		combined = mergeContours(a, b)
 		good = contoursMergeable(a, b, combined)
 		if good:
-			print "combining contours %d and %d" % (i, i+1)
-			ret.append(combined)
-			i += 1
+			print "combining contours %d and %d" % (len(ret)-1, i)
+			ret[-1] = combined
 		else:
-			ret.append(a)
-		i += 1
-	
-	# if after the loop i == len(countours), the last pair wasn't merged and we have one more contour to add to the list
-	if i == len(contours):
-		ret.append(contours[-1])
+			ret.append(b)
 
 	return ret
