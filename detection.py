@@ -156,7 +156,8 @@ class ArbitraryPlaneDetector:
         # This cost function creates a cost based on the area of
         # a contour. A smaller area == bigger cost
         def areaCost(contour):
-            return 1 / cv2.contourArea(contour)
+            area = cv2.contourArea(contour)
+            return 1 / float(area) if area != 0 else 10000000
 
         # computes linear combination of features
         # note that the weights are inverted because we're doing a minimization. Large weights imply greater importance.
