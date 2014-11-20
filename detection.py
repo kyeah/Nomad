@@ -7,6 +7,8 @@ import vectormath as vmath
 
 class ArbitraryPlaneDetector:
 
+    previouslyReturned = None
+
     def filter_corners(self, approxCurve, alpha):
         """
         Removes duplicate corners by pairwise distance test.
@@ -101,9 +103,13 @@ class ArbitraryPlaneDetector:
             for contour in contours:
                 cv2.drawContours(frame, contour, -1, (255, 255, 0), 10)
 
-        # Return default rectangle if no contours found; todo: retain previous contour state
+        # Return previous contour state if no contours found
         if not contours:
-            return np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
+            print "returning previous corners because no contours found"
+            if self.previouslyReturned:
+                return self.previouslyReturned
+            else:
+                return np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
 
         # 3. Estimate the most rectangular contour
         approxCurve = []
@@ -134,4 +140,5 @@ class ArbitraryPlaneDetector:
         approxCurve = np.array([pt for pt in approxCurve if tuple(pt) not in rejects])
         approxCurve = vmath.approx_quadrilateral(approxCurve, alpha)
 
-        return self.order_corners_clockwise(approxCurve)
+        self.previouslyReturned = self.order_corners_clockwise(approxCurve)
+        return self.previouslyReturned
