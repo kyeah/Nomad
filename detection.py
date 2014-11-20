@@ -153,6 +153,11 @@ class ArbitraryPlaneDetector:
         def midDistCost(contour):
             return avg((dist(x, y, cx, cy) / dim for x, y in pointsFromContour(contour)))
 
+        # This cost function creates a cost based on the area of
+        # a contour. A smaller area == bigger cost
+        def areaCost(contour):
+            return 1 / cv2.contourArea(contour)
+
         # computes linear combination of features
         # note that the weights are inverted because we're doing a minimization. Large weights imply greater importance.
         def combinedCostFunction(*args):
@@ -169,7 +174,8 @@ class ArbitraryPlaneDetector:
         costFuncs = {
             "rect": rectCost,
             "middist": midDistCost,
-            "combined1": combinedCostFunction((1, midDistCost), (1, rectCost)),
+            "area": areaCost,
+            "combined1": combinedCostFunction((1, midDistCost), (1, rectCost), (1, areaCost)),
         }
 
         costFunction = costFuncs[self.costMode]
