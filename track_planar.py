@@ -31,6 +31,8 @@ def null_callback(x):
 
 def main():
 
+    opticalFlowTest = False
+
     parser = OptionParser(usage="usage: %prog [options] [video] [trainingFrame] (video and trainingFrame required if not streaming)")
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
     parser.add_option("-c", "--corners", dest="corners", action="store_true", help="show the corners of the tracked planar surface")
@@ -38,6 +40,7 @@ def main():
     parser.add_option("-n", "--no-write", dest="nowrite", action="store_true", help="skip writing video file (for systems that don't support it)")
     parser.add_option("-k", "--kalman", dest="kalman", action="store_true", help="use a Kalman Filter to smooth predicted corners")
     parser.add_option("-f", "--costfunc", dest="costMode", default="rect", help="which cost function to use to evaluate contours")
+
     options, args = parser.parse_args()
 
     videoSource = None
@@ -72,7 +75,8 @@ def main():
         
         print "processing frame %d" % frameIndex
         frame_copy = np.array(frame)
-        
+        gframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
         # need the dimensions of the first frame to initialize the video writer
         if writer is None and not options.nowrite:
             dim = tuple(frame.shape[:2][::-1])
@@ -86,13 +90,16 @@ def main():
                 corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
             else:
                 # Track current plane
-                homography = tracker.track(frame)
+                if opticalFlowTest:
+                    corners = tracker.track(gframe)
+                else:
+                    homography = tracker.track(frame)
                 
-                if len(np.flatnonzero(homography)) == 0:
-                    print "encountered zero homography! Skipping frame."
-                    continue
+                    if len(np.flatnonzero(homography)) == 0:
+                        print "encountered zero homography! Skipping frame."
+                        continue
 
-                corners = [applyHomography(homography, point) for point in plane.init_corners]
+                    corners = [applyHomography(homography, point) for point in plane.init_corners]
 
         else:
             homography = tracker.track(frame)
@@ -155,7 +162,10 @@ def main():
             else:
                 # Track highlighted plane
                 plane = TrackedPlane(corners)
-                tracker = GenericTracker(frame_copy)
+                if opticalFlowTest:
+                    tracker = OpticalFlowTracker(gframe, np.float32(corners))
+                else:
+                    tracker = GenericTracker(frame_copy)
 
         if key == ord('q'):
             print "quitting early!"

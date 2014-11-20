@@ -62,19 +62,22 @@ class GenericTracker:
 
 class OpticalFlowTracker:
 
-    # Termination criteria: 10 iterations or moved at least 1pt
-    term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
-
-    # Parameters for lucas kanade optical flow
-    lk_params = dict( winSize  = (15,15),
-                      maxLevel = 2,
-                      criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-
     def __init__(self, old_gframe, pts):
         self.old_gframe = old_gframe
         self.pts = pts
 
+        # Termination criteria: 10 iterations or moved at least 1pt
+        self.term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
+
+        # Parameters for lucas kanade optical flow
+        self.lk_params = dict( winSize  = (15,15),
+                               maxLevel = 2,
+                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+
     def track(self, gframe):
-        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, pts, None, **lk_params)
+        print self.pts
+        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
         self.pts = p1
-        return self.pts
+        self.old_gframe = gframen
+        return p1
