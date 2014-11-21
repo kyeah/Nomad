@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 import vectormath as vmath
 from miscmath import *
+from contour_merge import *
 import math
 
 # utility generator function that yields all the points in a contour as (x, y) tuples
@@ -15,9 +16,12 @@ def pointsFromContour(cnt):
 class ArbitraryPlaneDetector:
 
     previouslyReturned = None
+    costMode = "rect"
+    mergeMode = False
 
-    def __init__(self, costMode="rect"):
+    def __init__(self, costMode="rect", mergeMode=False):
         self.costMode = costMode
+        self.mergeMode = mergeMode
 
     def filter_corners(self, approxCurve, alpha):
         """
@@ -109,6 +113,10 @@ class ArbitraryPlaneDetector:
         # 2. Find External contours
         contours, hierarchy = cv2.findContours(edges,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        # attempt to merge contours
+        if self.mergeMode:
+            contours = collapseContours(contours)
+
         if viz:
             for i, contour in enumerate(contours):
                 # draw each separate contour a different color
@@ -116,6 +124,13 @@ class ArbitraryPlaneDetector:
                 color = (255, c, 0)
 
                 cv2.drawContours(frame, contour, -1, color, 10)
+
+                # draw a circle indicating the center of the contour (easier to identify multiple contours)
+                points = list(pointsFromContour(contour))
+                avgx = int(avg((x for x, y in points)))
+                avgy = int(avg((y for x, y in points)))
+                inv = tuple(map(lambda x: 255-x, color))
+                cv2.circle(frame, (avgx, avgy), 100, color, 5)
 
         # Return previous contour state if no contours found
         if not contours:
@@ -135,19 +150,35 @@ class ArbitraryPlaneDetector:
 
         # this cost function is an average of the distances to the center of the frame for all points in the contour
         cx, cy = frame.shape[1]/2.0, frame.shape[0]/2.0
+        dim = max(frame.shape[0], frame.shape[1])
         def midDistCost(contour):
-            return avg((dist(x, y, cx, cy) for x, y in pointsFromContour(contour)))
+            return avg((dist(x, y, cx, cy) / dim for x, y in pointsFromContour(contour)))
+
+        # This cost function creates a cost based on the area of
+        # a contour. A smaller area == bigger cost
+        def areaCost(contour):
+            area = cv2.contourArea(contour)
+            return 1 / float(area) if area != 0 else 10000000
 
         # computes linear combination of features
+        # note that the weights are inverted because we're doing a minimization. Large weights imply greater importance.
         def combinedCostFunction(*args):
             def fn(cnt):
-                return sum((weight*subFunc(cnt) for weight, subFunc in args))
+                total = 0
+                print "---"
+                for weight, subFunc in args:
+                    value = subFunc(cnt)
+                    total += value / float(weight)
+                    print "%s: %8.5f (weight=%.3f)" % (subFunc.__name__, value, weight)
+                return total
             return fn
 
         costFuncs = {
             "rect": rectCost,
             "middist": midDistCost,
-            "combined1": combinedCostFunction((1, midDistCost), (1, rectCost)),
+            "area": areaCost,
+            "combined1": combinedCostFunction((1, midDistCost), (1, rectCost), (1, areaCost)),
+            "combined2": combinedCostFunction((1, midDistCost), (1, areaCost))
         }
 
         costFunction = costFuncs[self.costMode]

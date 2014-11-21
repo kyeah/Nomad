@@ -62,7 +62,7 @@ class GenericTracker:
 
 class OpticalFlowTracker:
 
-    def __init__(self, old_gframe, pts):
+    def __init__(self, old_gframe, pts=[]):
         self.old_gframe = old_gframe
         self.pts = pts
 
@@ -76,8 +76,7 @@ class OpticalFlowTracker:
 
 
     def track(self, gframe):
-        print self.pts
         p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
         self.pts = p1
-        self.old_gframe = gframen
+        self.old_gframe = gframe
         return p1
