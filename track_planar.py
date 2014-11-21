@@ -87,11 +87,14 @@ def main():
     cv2.namedWindow("frame")
     cv2.setMouseCallback("frame", paint_mouse)
 
+    last_gframe = None
+
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
         print "processing frame %d" % frameIndex
         frame_copy = np.array(frame)
-        
+        gframe = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
         if frameIndex == 0:
             drawingOverlay = np.zeros_like(frame)
 
@@ -170,12 +173,28 @@ def main():
 
         # Draw paint overlay
         f = np.zeros_like(frame)
+
+        xs, ys, zs = np.where(drawingOverlay > 0)
+        overlayPts = zip(xs, ys)
+
+        if last_gframe is not None and overlayPts:
+            flow_tracker = OpticalFlowTracker(last_gframe, np.float32(overlayPts))  # todo: overlayPts are pts in curr gframe, not last!
+            overlayPts = flow_tracker.track(gframe)
+            drawingOverlay = np.zeros_like(drawingOverlay)
+            for (x,y) in overlayPts:
+                try:
+                    drawingOverlay[x,y] = [0, 255, 255] 
+                except:
+                    print "ok"
+
         f += drawingOverlay
         for c in range(0,3):
             f[:,:, c] += frame[:,:, c] * (1 - drawingOverlay[:,:,2]/255.0)
 
         if not options.nowrite:
             writer.write(f)
+
+        last_gframe = gframe
 
         cv2.imshow("frame", f)
         key = cv2.waitKey(1) & 0xFF
