@@ -88,7 +88,9 @@ class OpticalFlowTracker:
 
 
     def track(self, gframe):
-        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
+        #p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
+        flow = cv2.calcOpticalFlowFarneback(self.old_gframe, gframe, 0.5, 3, 15, 3, 5, 1.2, 0)
+        p1 = np.float32(map(lambda p: [p[0]+flow[p[1],p[0],0], p[1]+flow[p[1],p[0],1]], self.pts))
         homography, _ = cv2.findHomography(self.init_pts, p1, cv2.RANSAC, 5.0)
         self.pts = p1
         self.old_gframe = gframe
