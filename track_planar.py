@@ -157,20 +157,9 @@ def main():
         if options.kalman:
             corners = kalmanCorners
 
-        # Planarize corners to estimate head-on plane
-        p0, p1, p3 = corners[0], corners[1], corners[3]
-        w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
-
-        planarized_corners = np.float32([
-            p0,
-            (p0[0] + w, p0[1]),
-            (p0[0] + w, p0[1] + h),
-            (p0[0], p0[1] + h)
-        ])
-
         # Draw 3D object overlay
         if plane and overlay is not None:
-            graphics.drawOverlay(frame, planarized_corners, corners, overlay)
+            graphics.drawOverlay(frame, plane.planarized_corner_map, corners, overlay)
 
         # write the frame number in the corner so the video can be matched to command line output
         textCoords = frame.shape[1]-100, frame.shape[0]-40

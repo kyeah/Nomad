@@ -6,6 +6,17 @@ class TrackedPlane:
     def __init__( self, corners ):
         self.init_corners = corners
         self.corners = corners
+        
+        # Planarize corners to estimate head-on plane
+        p0, p1, p3 = corners[0], corners[1], corners[3]
+        w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
+
+        self.planarized_corner_map = np.float32([
+            p0,
+            (p0[0] + w, p0[1]),
+            (p0[0] + w, p0[1] + h),
+            (p0[0], p0[1] + h)
+        ])
 
 # this is closely adapted from project 1
 class GenericTracker:
