@@ -136,9 +136,9 @@ class ArbitraryPlaneDetector:
         if not contours:
             print "returning previous corners because no contours found"
             if self.previouslyReturned:
-                return self.previouslyReturned
+                return None, self.previouslyReturned
             else:
-                return np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
+                return None, np.array([[0, 0], [150, 0], [150, 300], [0, 300]])
 
         # 3. Estimate the most rectangular contour
         approxCurve = []
