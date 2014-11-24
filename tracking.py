@@ -95,3 +95,25 @@ class OpticalFlowTracker:
         self.pts = p1
         self.old_gframe = gframe
         return homography
+
+class OpticalFlowPointTracker:
+
+    def __init__(self, old_gframe, pts=[]):
+        self.old_gframe = old_gframe
+        self.init_pts = np.float32(pts)
+        self.pts = np.float32(pts)
+
+        # Termination criteria: 10 iterations or moved at least 1pt
+        self.term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
+
+        # Parameters for lucas kanade optical flow
+        self.lk_params = dict( winSize  = (15,15),
+                               maxLevel = 2,
+                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+
+    def track(self, gframe):
+        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
+        self.pts = p1
+        self.old_gframe = gframe
+        return p1

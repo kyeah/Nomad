@@ -55,7 +55,7 @@ def main():
     parser.add_option("-k", "--kalman", dest="kalman", action="store_true", help="use a Kalman Filter to smooth predicted corners")
     parser.add_option("-f", "--costfunc", dest="costMode", default="rect", help="which cost function to use to evaluate contours")
     parser.add_option("-m", "--merge-contours", dest="mergeMode", action="store_true", help="if on, attempt to merge pairs of contours that become more rectangular when merged")
-    parser.add_option("-t", "--tracker", dest="trackMode", default="features", help="which tracker to use for corner tracking [features, training]")
+    parser.add_option("-t", "--tracker", dest="trackMode", default="features", help="which tracker to use for corner tracking [features, flow, pointFlow]")
 
     options, args = parser.parse_args()
 
@@ -115,16 +115,19 @@ def main():
             else:
                 # Track current plane
                 homography = None
-                if options.trackMode == 'flow':
-                    homography = tracker.track(gframe)
+                if options.trackMode == 'pointFlow':
+                    corners = tracker.track(gframe)
                 else:
-                    homography = tracker.track(frame)
+                    if options.trackMode == 'flow':
+                        homography = tracker.track(gframe)
+                    else:
+                        homography = tracker.track(frame)
                 
-                if len(np.flatnonzero(homography)) == 0:
-                    print "encountered zero homography! Skipping frame."
-                    continue
+                    if len(np.flatnonzero(homography)) == 0:
+                        print "encountered zero homography! Skipping frame."
+                        continue
 
-                corners = [applyHomography(homography, point) for point in plane.init_corners]
+                    corners = [applyHomography(homography, point) for point in plane.init_corners]
 
         else:
             homography = tracker.track(frame)
@@ -211,6 +214,9 @@ def main():
                     x1, y1, x2, y2 = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
                     plane = TrackedPlane(np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]]), contour)
                     tracker = OpticalFlowTracker(gframe, contour)
+                elif options.trackMode == 'pointFlow':
+                    plane = TrackedPlane(corners, corners)
+                    tracker = OpticalFlowPointTracker(gframe, corners)
                 else:
                     # Track a generic 4-corner rectangular plane
                     plane = TrackedPlane(corners, corners)
