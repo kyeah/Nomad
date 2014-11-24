@@ -3,12 +3,12 @@ import numpy as np
 
 class TrackedPlane:
     
-    def __init__( self, corners ):
-        self.init_corners = corners
+    def __init__( self, init_corners, corners ):
+        self.init_corners = init_corners
         self.corners = corners
         
         # Planarize corners to estimate head-on plane
-        p0, p1, p3 = corners[0], corners[1], corners[3]
+        p0, p1, p3 = init_corners[0], init_corners[1], init_corners[3]
         w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
 
         self.planarized_corner_map = np.float32([
@@ -75,7 +75,8 @@ class OpticalFlowTracker:
 
     def __init__(self, old_gframe, pts=[]):
         self.old_gframe = old_gframe
-        self.pts = pts
+        self.init_pts = np.float32(pts)
+        self.pts = np.float32(pts)
 
         # Termination criteria: 10 iterations or moved at least 1pt
         self.term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
@@ -88,6 +89,7 @@ class OpticalFlowTracker:
 
     def track(self, gframe):
         p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
+        homography, _ = cv2.findHomography(self.init_pts, p1, cv2.RANSAC, 5.0)
         self.pts = p1
         self.old_gframe = gframe
-        return p1
+        return homography

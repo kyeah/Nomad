@@ -65,6 +65,7 @@ def main():
     writer = None
     plane = None
     corners = None
+    contour = None
     kalman = KalmanFilter(useProgressivePNC=True) if options.kalman else None
 
     codec = cv2.cv.CV_FOURCC(*"mp4v")
@@ -110,19 +111,20 @@ def main():
             kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream Options') + 1
             if not plane:
                 # Detect a plane
-                corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
+                contour, corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
             else:
                 # Track current plane
+                homography = None
                 if options.trackMode == 'flow':
-                    corners = tracker.track(gframe)
+                    homography = tracker.track(gframe)
                 else:
                     homography = tracker.track(frame)
                 
-                    if len(np.flatnonzero(homography)) == 0:
-                        print "encountered zero homography! Skipping frame."
-                        continue
+                if len(np.flatnonzero(homography)) == 0:
+                    print "encountered zero homography! Skipping frame."
+                    continue
 
-                    corners = [applyHomography(homography, point) for point in plane.init_corners]
+                corners = [applyHomography(homography, point) for point in plane.init_corners]
 
         else:
             homography = tracker.track(frame)
@@ -202,10 +204,16 @@ def main():
                 plane = None
             else:
                 # Track highlighted plane
-                plane = TrackedPlane(corners)
                 if options.trackMode == 'flow':
-                    tracker = OpticalFlowTracker(gframe, np.float32(corners))
+                    # Track all points in contour, using initial brect to map models
+                    bbox = cv2.boundingRect(contour)
+                    contour = map(lambda x: x[0], contour)
+                    x1, y1, x2, y2 = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
+                    plane = TrackedPlane(np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]]), contour)
+                    tracker = OpticalFlowTracker(gframe, contour)
                 else:
+                    # Track a generic 4-corner rectangular plane
+                    plane = TrackedPlane(corners, corners)
                     tracker = GenericTracker(frame_copy)
 
         if key == ord('q'):

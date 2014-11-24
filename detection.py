@@ -184,6 +184,7 @@ class ArbitraryPlaneDetector:
         costFunction = costFuncs[self.costMode]
         costs = [costFunction(contour) for contour in contours]
 
+        bestContour = None
         while len(approxCurve) < 4 and contours:
             cnt_idx = costs.index(min(costs))
             bestContour = contours.pop(cnt_idx)
@@ -207,4 +208,4 @@ class ArbitraryPlaneDetector:
         approxCurve = vmath.approx_quadrilateral(approxCurve, alpha)
 
         self.previouslyReturned = self.order_corners_clockwise(approxCurve)
-        return self.previouslyReturned
+        return bestContour, self.previouslyReturned
