@@ -1,5 +1,7 @@
+from OpenGL.GL import *
+
 class OBJ:
-    def __init__(self, filename, swapyz=True):
+    def __init__(self, filename, swapyz=False, negateyz=True):
         """Loads a Wavefront OBJ file. """
         self.vertices = []
         self.normals = []
@@ -15,18 +17,22 @@ class OBJ:
                 v = map(float, values[1:4])
                 if swapyz:
                     v = [v[0], v[2], v[1]]
+                if negateyz:
+                    v = [v[0], -v[1], -v[2]]
                 self.vertices.append(v)
             elif values[0] == 'vn':
                 v = map(float, values[1:4])
                 if swapyz:
                     v = [v[0], v[2], v[1]]
+                if negateyz:
+                    v = [v[0], -v[1], -v[2]]
                 self.normals.append(v)
             elif values[0] == 'vt':
                 self.texcoords.append(map(float, values[1:3]))
             elif values[0] in ('usemtl', 'usemat'):
                 material = values[1]
-            elif values[0] == 'mtllib':
-                self.mtl = MTL(values[1])
+            #elif values[0] == 'mtllib':
+                #self.mtl = MTL(values[1])
             elif values[0] == 'f':
                 face = []
                 texcoords = []

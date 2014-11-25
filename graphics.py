@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 import math
+import itertools
 from tracking import OpticalFlowHomographyTracker
 
 class PaintedObject():
@@ -86,8 +87,8 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
                 
         # Map normalized verts onto surface plane
         verts = np.float32(obj.vertices)
-        scale = max(surface_w, surface_h)
-        obj_verts = verts * [scale, scale, 0.5 * scale] + [xi0, yi0, 0]
+        scale = min(surface_w, surface_h) * 0.5
+        obj_verts = verts * [scale, scale, 0.5 * scale] + [xi0 + (surface_w - scale), yi0 + (surface_h - scale), 0]
         mapped_verts = cv2.projectPoints(obj_verts, rot, trans, H, distort_coeff)[0].reshape(-1, 2)
         
         # Draw object faces
@@ -102,6 +103,5 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
                 v = map(faceToVert, vert_ids)
 
                 if all(vert is not None for vert in v):
-                        cv2.line(frame, v[0], v[1], (0, 255, 0))
-                        cv2.line(frame, v[0], v[2], (0, 255, 0))
-                        cv2.line(frame, v[1], v[2], (0, 255, 0))
+                    for vpair in itertools.combinations(v, 2):
+                        cv2.line(frame, vpair[0], vpair[1], (0, 255, 0))
