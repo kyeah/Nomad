@@ -85,7 +85,7 @@ class ArbitraryPlaneDetector:
         if c4[0] > c3[0]: c3, c4 = c4, c3
         return [c1, c2, c3, c4]
 
-    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=True):
+    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=False):
         """
         Detects arbitrary planes in a frame.
           1. Canny Edge Detection on blurred grayscale image
@@ -197,10 +197,9 @@ class ArbitraryPlaneDetector:
             rejects = self.filter_corners(approxCurve, alpha)
             approxCurve = np.array([pt for pt in approxCurve if tuple(pt) not in rejects])
 
-        if viz:
-            cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
-            for pt in approxCurve:
-                cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
+        cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
+        for pt in approxCurve:
+            cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
 
         # Filter edges and approximate to best quadrilateral
         rejects = self.filter_edges(approxCurve, beta)

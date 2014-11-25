@@ -14,6 +14,7 @@ import graphics
 
 drawing = False
 drawingOverlay = None
+recreateFlowTracker = False
 
 def framesFromVideo(video):
     while True:
@@ -23,6 +24,9 @@ def framesFromVideo(video):
         yield frame
 
 def outputFilename(inputFilename):
+    if inputFilename == 0:
+        return "test.avi"
+
     dot = inputFilename.rfind(".")
     return "%s.out.%s" % (inputFilename[:dot], inputFilename[dot+1:])
 
@@ -34,18 +38,21 @@ def null_callback(x):
     pass
 
 def paint_mouse(event, x, y, flags, param):
-    global drawing, drawingOverlay
+    global drawing, drawingOverlay, recreateFlowTracker
 
     if event == cv2.EVENT_LBUTTONDOWN:
         drawing = True
     elif event == cv2.EVENT_LBUTTONUP:
         drawing = False
+        recreateFlowTracker = True
 
     if drawing:
         cv2.circle(drawingOverlay, (x,y), 3, (0,255,255), -1)
 
 def main():
-    global drawing, drawingOverlay
+    global drawing, drawingOverlay, recreateFlowTracker
+
+    overlayTest = False
 
     parser = OptionParser(usage="usage: %prog [options] [video] [trainingFrame] (video and trainingFrame required if not streaming)")
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
@@ -56,6 +63,7 @@ def main():
     parser.add_option("-f", "--costfunc", dest="costMode", default="rect", help="which cost function to use to evaluate contours")
     parser.add_option("-m", "--merge-contours", dest="mergeMode", action="store_true", help="if on, attempt to merge pairs of contours that become more rectangular when merged")
     parser.add_option("-t", "--tracker", dest="trackMode", default="features", help="which tracker to use for corner tracking [features, flow, pointFlow]")
+    parser.add_option("-l", "--stall", dest="stall", action="store_true", help="Stall video on each frame if not tracking")
 
     options, args = parser.parse_args()
 
@@ -66,6 +74,8 @@ def main():
     plane = None
     corners = None
     contour = None
+    first_flow_pts = []
+    flow_tracker = None
     kalman = KalmanFilter(useProgressivePNC=True) if options.kalman else None
 
     codec = cv2.cv.CV_FOURCC(*"mp4v")
@@ -173,25 +183,25 @@ def main():
         # Draw paint overlay
         f = np.zeros_like(frame)
 
-        xs, ys, zs = np.where(drawingOverlay > 0)
-        overlayPts = zip(xs, ys)
+        if recreateFlowTracker:
+            xs, ys, zs = np.where(drawingOverlay > 0)
+            overlayPts = zip(xs, ys)
+            y, x, h, w = cv2.boundingRect(np.float32(map(lambda x: [x], overlayPts)))
+            x1, y1, x2, y2 = x, y, x + w, y + h
+            first_flow_pts = np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]])
+            flow_tracker = OpticalFlowTracker(last_gframe, np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]]))
+            recreateFlowTracker = False
+        
+        nextOverlay = drawingOverlay
+        if flow_tracker and not drawing:
+            homography = flow_tracker.track(gframe)
+            print homography
+            if len(np.flatnonzero(homography)) > 0:
+                nextOverlay = cv2.warpPerspective(drawingOverlay, homography, (drawingOverlay.shape[1], drawingOverlay.shape[0]))
 
-        from collections import OrderedDict
-        overlayPts = list(OrderedDict.fromkeys(overlayPts))
-
-        if last_gframe is not None and overlayPts:
-            flow_tracker = OpticalFlowTracker(last_gframe, np.float32(overlayPts))  # todo: overlayPts are pts in curr gframe, not last!
-            overlayPts = flow_tracker.track(gframe)
-            drawingOverlay = np.zeros_like(drawingOverlay)
-            for (y,x) in overlayPts:
-                try:
-                    drawingOverlay[x,y] = [0, 255, 255] 
-                except:
-                    print "ok"
-
-        f += drawingOverlay
+        f += nextOverlay
         for c in range(0,3):
-            f[:,:, c] += frame[:,:, c] * (1 - drawingOverlay[:,:,2]/255.0)
+            f[:,:, c] += frame[:,:, c] * (1 - nextOverlay[:,:,2]/255.0)
 
         if not options.nowrite:
             writer.write(f)
@@ -199,7 +209,10 @@ def main():
         last_gframe = gframe
 
         cv2.imshow("frame", f)
-        key = cv2.waitKey(1) & 0xFF
+        if not plane and options.stall:
+            key = cv2.waitKey(0) & 0xFF
+        else:
+            key = cv2.waitKey(1) & 0xFF
 
         if key == ord('t'):
             if plane:
@@ -209,10 +222,11 @@ def main():
                 # Track highlighted plane
                 if options.trackMode == 'flow':
                     # Track all points in contour, using initial brect to map models
-                    bbox = cv2.boundingRect(contour)
+                    x, y, w, h = cv2.boundingRect(contour)
+                    x1, y1, x2, y2 = x, y, x + w, y + h
                     contour = map(lambda x: x[0], contour)
-                    x1, y1, x2, y2 = bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]
-                    plane = TrackedPlane(np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]]), contour)
+                    c = 10  # Number of pixels to condense rect by to avoid tracking on boundary
+                    plane = TrackedPlane(np.float32([[x1+c,y1+c], [x2-c,y1+c], [x2-c,y2-c], [x1+c,y2-c]]), contour)
                     tracker = OpticalFlowTracker(gframe, contour)
                 elif options.trackMode == 'pointFlow':
                     plane = TrackedPlane(corners, corners)
