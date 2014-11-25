@@ -63,7 +63,7 @@ def main():
     parser.add_option("-f", "--costfunc", dest="costMode", default="rect", help="which cost function to use to evaluate contours")
     parser.add_option("-m", "--merge-contours", dest="mergeMode", action="store_true", help="if on, attempt to merge pairs of contours that become more rectangular when merged")
     parser.add_option("-t", "--tracker", dest="trackMode", default="features", help="which tracker to use for corner tracking [features, flow, pointFlow]")
-    parser.add_option("-l", "--stall", dest="stall", action="store_true", help="Stall video on each frame if not tracking")
+    parser.add_option("-l", "--stall", dest="stall", action="store_true", help="Stall video on each frame when not tracking")
 
     options, args = parser.parse_args()
 
@@ -74,8 +74,11 @@ def main():
     plane = None
     corners = None
     contour = None
-    first_flow_pts = []
+
+    # Paint variables
     flow_tracker = None
+    first_flow_pts = []
+
     kalman = KalmanFilter(useProgressivePNC=True) if options.kalman else None
 
     codec = cv2.cv.CV_FOURCC(*"mp4v")
@@ -111,23 +114,25 @@ def main():
         if frameIndex == 0:
             drawingOverlay = np.zeros_like(frame)
 
-        # need the dimensions of the first frame to initialize the video writer
+        # Use the dimensions of the first frame to initialize the video writer
         if writer is None and not options.nowrite:
             dim = tuple(frame.shape[:2][::-1])
             writer = cv2.VideoWriter(outputFilename(videoSource), codec, 15.0, dim)
             print "initializing writer with dimensions %d x %d" % dim
 
         if options.stream:
-            kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream Options') + 1
             if not plane:
                 # Detect a plane
+                kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream Options') + 1
                 contour, corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
             else:
                 # Track current plane
                 homography = None
                 if options.trackMode == 'pointFlow':
+                    # Track and update corners directly
                     corners = tracker.track(gframe)
                 else:
+                    # Map initialization corners with new homography
                     if options.trackMode == 'flow':
                         homography = tracker.track(gframe)
                     else:
@@ -168,7 +173,7 @@ def main():
             if options.kalman:
                 graphics.drawCorners(frame, kalmanCorners, (0, 255, 255))
 
-        # after drawing, overwrite corners with kalman corners if using kalman filter
+        # After drawing, overwrite corners with kalman corners if using kalman filter
         if options.kalman:
             corners = kalmanCorners
 
@@ -183,22 +188,34 @@ def main():
         # Draw paint overlay
         f = np.zeros_like(frame)
 
+        """
+        The paint overlay is implemented using the initial bounding rect as the mapping for our painted object to the scene.
+        Dense optical flow is applied to the corners to get the homography mapping the original drawing to its scene position.
+        """
         if recreateFlowTracker:
+
+            # Grab all pixels of overlay
             xs, ys, zs = np.where(drawingOverlay > 0)
             overlayPts = zip(xs, ys)
+            
+            # Grab bounding rect
             y, x, h, w = cv2.boundingRect(np.float32(map(lambda x: [x], overlayPts)))
             x1, y1, x2, y2 = x, y, x + w, y + h
+
+            # Create dense optical flow tracker
             first_flow_pts = np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]])
-            flow_tracker = OpticalFlowTracker(last_gframe, np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]]))
+            flow_tracker = OpticalFlowHomographyTracker(last_gframe, first_flow_pts)
             recreateFlowTracker = False
         
         nextOverlay = drawingOverlay
+
+        # Map original drawing to scene position
         if flow_tracker and not drawing:
             homography = flow_tracker.track(gframe)
-            print homography
             if len(np.flatnonzero(homography)) > 0:
                 nextOverlay = cv2.warpPerspective(drawingOverlay, homography, (drawingOverlay.shape[1], drawingOverlay.shape[0]))
 
+        # Draw overlay onto new canvas 'f'
         f += nextOverlay
         for c in range(0,3):
             f[:,:, c] += frame[:,:, c] * (1 - nextOverlay[:,:,2]/255.0)
@@ -209,6 +226,7 @@ def main():
         last_gframe = gframe
 
         cv2.imshow("frame", f)
+
         if not plane and options.stall:
             key = cv2.waitKey(0) & 0xFF
         else:
@@ -227,10 +245,13 @@ def main():
                     contour = map(lambda x: x[0], contour)
                     c = 10  # Number of pixels to condense rect by to avoid tracking on boundary
                     plane = TrackedPlane(np.float32([[x1+c,y1+c], [x2-c,y1+c], [x2-c,y2-c], [x1+c,y2-c]]), contour)
-                    tracker = OpticalFlowTracker(gframe, contour)
+                    tracker = OpticalFlowHomographyTracker(gframe, contour)
+
                 elif options.trackMode == 'pointFlow':
+                    # Track using the four approximated corners under sparse optical flow
                     plane = TrackedPlane(corners, corners)
                     tracker = OpticalFlowPointTracker(gframe, corners)
+
                 else:
                     # Track a generic 4-corner rectangular plane
                     plane = TrackedPlane(corners, corners)

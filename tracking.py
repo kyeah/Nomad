@@ -84,33 +84,20 @@ class OpticalFlowTracker:
         # Parameters for lucas kanade optical flow
         self.lk_params = dict( winSize  = (15,15),
                                maxLevel = 2,
-                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))    
 
+class OpticalFlowHomographyTracker( OpticalFlowTracker ):
 
     def track(self, gframe):
         #p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
         flow = cv2.calcOpticalFlowFarneback(self.old_gframe, gframe, 0.5, 3, 15, 3, 5, 1.2, 0)
-        p1 = np.float32(map(lambda p: [p[0]+flow[p[1],p[0],0], p[1]+flow[p[1],p[0],1]], self.pts))
+        p1 = np.float32(map(lambda p: [p[0] + flow[p[1], p[0], 0], p[1] + flow[p[1], p[0], 1]], self.pts))
         homography, _ = cv2.findHomography(self.init_pts, p1, cv2.RANSAC, 5.0)
         self.pts = p1
         self.old_gframe = gframe
         return homography
 
-class OpticalFlowPointTracker:
-
-    def __init__(self, old_gframe, pts=[]):
-        self.old_gframe = old_gframe
-        self.init_pts = np.float32(pts)
-        self.pts = np.float32(pts)
-
-        # Termination criteria: 10 iterations or moved at least 1pt
-        self.term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
-
-        # Parameters for lucas kanade optical flow
-        self.lk_params = dict( winSize  = (15,15),
-                               maxLevel = 2,
-                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-
+class OpticalFlowPointTracker( OpticalFlowTracker ):
 
     def track(self, gframe):
         p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
