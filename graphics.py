@@ -54,7 +54,7 @@ def drawCorners(frame, corners, color):
     pass
 
 
-def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
+def drawOverlay(frame, init_corners, corners, obj, focal=0.5, scale=0.5, draw_style="line_shader"):
         """
         Draws an overlay onto a tracked rectangular planar surface.
 
@@ -87,7 +87,7 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
                 
         # Map normalized verts onto surface plane
         verts = np.float32(obj.vertices)
-        scale = min(surface_w, surface_h) * 0.5
+        scale = min(surface_w, surface_h) * scale
         obj_verts = verts * [scale, scale, 0.5 * scale] + [xi0 + (surface_w - scale), yi0 + (surface_h - scale), 0]
         mapped_verts = cv2.projectPoints(obj_verts, rot, trans, H, distort_coeff)[0].reshape(-1, 2)
         
@@ -99,9 +99,15 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5):
                 return (int(x), int(y))
 
         for face_obj in obj.faces:
-                vert_ids = face_obj[0]
-                v = map(faceToVert, vert_ids)
+                vert_ids, saturation = face_obj[0], face_obj[4]
+                v = np.array(map(faceToVert, vert_ids))
 
                 if all(vert is not None for vert in v):
-                    for vpair in itertools.combinations(v, 2):
-                        cv2.line(frame, vpair[0], vpair[1], (0, 255, 0))
+                    if draw_style == "face_shader":
+                        cv2.fillConvexPoly(frame, v, (0, saturation * 255, 0))
+                    else:
+                        if draw_style == "line":
+                            saturation = 1
+
+                        for idx in xrange(len(v)):
+                            cv2.line(frame, tuple(v[idx]), tuple(v[(idx+1) % len(v)]), (0, saturation * 255, 0))

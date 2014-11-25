@@ -1,4 +1,6 @@
 from OpenGL.GL import *
+import numpy as np
+import vectormath
 
 class OBJ:
     def __init__(self, filename, swapyz=False, negateyz=True):
@@ -48,7 +50,11 @@ class OBJ:
                         norms.append(int(w[2]))
                     else:
                         norms.append(0)
-                self.faces.append((face, norms, texcoords, material))
+
+                verts = map(lambda idx: self.vertices[idx-1], face)
+                normal = np.cross(np.float32(verts[1]) - np.float32(verts[0]), np.float32(verts[2]) - np.float32(verts[0]))
+                saturation = vectormath.angle_between(normal, [0, 0, -1]) / (2*np.pi)
+                self.faces.append((face, norms, texcoords, material, saturation))
         self.normalizeVerts()
         
     def normalizeVerts(self):
