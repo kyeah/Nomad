@@ -14,7 +14,7 @@ import graphics
 
 drawing = False
 drawingOverlay = None
-recreateFlowTracker = False
+displayFrame = None
 
 def framesFromVideo(video):
     while True:
@@ -38,19 +38,20 @@ def null_callback(x):
     pass
 
 def paint_mouse(event, x, y, flags, param):
-    global drawing, drawingOverlay, recreateFlowTracker
+    global drawing, drawingOverlay, displayFrame
 
     if event == cv2.EVENT_LBUTTONDOWN:
         drawing = True
     elif event == cv2.EVENT_LBUTTONUP:
         drawing = False
-        recreateFlowTracker = True
 
     if drawing:
-        cv2.circle(drawingOverlay, (x,y), 3, (0,255,255), -1)
+        cv2.circle(drawingOverlay, (x,y), 3, (0,0,255), -1)
+        cv2.circle(displayFrame, (x,y), 3, (0,0,255), -1)
+        cv2.imshow("frame", displayFrame)
 
 def main():
-    global drawing, drawingOverlay, recreateFlowTracker
+    global drawing, drawingOverlay, displayFrame
 
     overlayTest = False
 
@@ -74,10 +75,9 @@ def main():
     plane = None
     corners = None
     contour = None
+    last_gframe = None
 
-    # Paint variables
-    flow_tracker = None
-    first_flow_pts = []
+    paintedObjects = []
 
     kalman = KalmanFilter(useProgressivePNC=True) if options.kalman else None
 
@@ -102,8 +102,6 @@ def main():
     video = cv2.VideoCapture(videoSource)
     cv2.namedWindow("frame")
     cv2.setMouseCallback("frame", paint_mouse)
-
-    last_gframe = None
 
     for frameIndex, frame in enumerate(framesFromVideo(video)):
         
@@ -186,51 +184,35 @@ def main():
         cv2.putText(frame, str(frameIndex), textCoords, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
 
         # Draw paint overlay
-        f = np.zeros_like(frame)
-
-        """
-        The paint overlay is implemented using the initial bounding rect as the mapping for our painted object to the scene.
-        Dense optical flow is applied to the corners to get the homography mapping the original drawing to its scene position.
-        """
-        if recreateFlowTracker:
-
-            # Grab all pixels of overlay
-            xs, ys, zs = np.where(drawingOverlay > 0)
-            overlayPts = zip(xs, ys)
-            
-            # Grab bounding rect
-            y, x, h, w = cv2.boundingRect(np.float32(map(lambda x: [x], overlayPts)))
-            x1, y1, x2, y2 = x, y, x + w, y + h
-
-            # Create dense optical flow tracker
-            first_flow_pts = np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]])
-            flow_tracker = OpticalFlowHomographyTracker(last_gframe, first_flow_pts)
-            recreateFlowTracker = False
-        
-        nextOverlay = drawingOverlay
+        displayFrame = np.zeros_like(frame)
+        displayFrame += drawingOverlay
 
         # Map original drawing to scene position
-        if flow_tracker and not drawing:
-            homography = flow_tracker.track(gframe)
-            if len(np.flatnonzero(homography)) > 0:
-                nextOverlay = cv2.warpPerspective(drawingOverlay, homography, (drawingOverlay.shape[1], drawingOverlay.shape[0]))
+        for paintedObject in paintedObjects:
+            nextOverlay = paintedObject.track(gframe)
+            displayFrame += nextOverlay
 
-        # Draw overlay onto new canvas 'f'
-        f += nextOverlay
         for c in range(0,3):
-            f[:,:, c] += frame[:,:, c] * (1 - nextOverlay[:,:,2]/255.0)
+            displayFrame[:,:, c] += frame[:,:, c] * (1 - displayFrame[:,:,2]/255.0)
 
         if not options.nowrite:
-            writer.write(f)
+            writer.write(displayFrame)
 
         last_gframe = gframe
 
-        cv2.imshow("frame", f)
+        cv2.imshow("frame", displayFrame)
 
         if not plane and options.stall:
             key = cv2.waitKey(0) & 0xFF
         else:
             key = cv2.waitKey(1) & 0xFF
+
+        if key == ord('p'):
+            paintedObjects.append(graphics.PaintedObject(drawingOverlay, last_gframe))
+            drawingOverlay = np.zeros_like(drawingOverlay)
+
+        if key == ord('l'):
+            options.stall = not options.stall
 
         if key == ord('t'):
             if plane:

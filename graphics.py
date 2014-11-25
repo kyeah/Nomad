@@ -3,6 +3,41 @@
 import cv2
 import numpy as np
 import math
+from tracking import OpticalFlowHomographyTracker
+
+class PaintedObject():
+    """
+    Paint overlays are implemented using the initial bounding rect as the mapping 
+    for our painted object to the scene. Dense optical flow is applied to the corners 
+    to get the homography mapping the original drawing to its scene position.
+    """
+
+
+    def __init__(self, drawingOverlay, last_gframe):
+        drawingOverlay[np.where((drawingOverlay == [0, 0, 255]).all(axis = 2))] = [0, 255, 255]
+        
+        self.drawingOverlay = drawingOverlay
+        self.shape = (drawingOverlay.shape[1], drawingOverlay.shape[0])
+        
+        # Grab all pixels of overlay
+        xs, ys, zs = np.where(drawingOverlay > 0)
+        self.overlayPts = zip(xs, ys)
+            
+        # Grab bounding rect
+        y, x, h, w = cv2.boundingRect(np.float32(map(lambda x: [x], self.overlayPts)))
+        x1, y1, x2, y2 = x, y, x + w, y + h
+        
+        # Create dense optical flow tracker
+        self.first_flow_pts = np.float32([[x1,y1], [x2,y1], [x2,y2], [x1,y2]])
+        self.flow_tracker = OpticalFlowHomographyTracker(last_gframe, self.first_flow_pts)
+
+    def track(self, gframe):
+        homography = self.flow_tracker.track(gframe)
+
+        if len(np.flatnonzero(homography)) == 0:
+            return np.zeros_like(gframe)
+            
+        return cv2.warpPerspective(self.drawingOverlay, homography, self.shape)
 
 def drawCorners(frame, corners, color):
     """
