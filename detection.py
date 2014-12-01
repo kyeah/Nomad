@@ -85,7 +85,7 @@ class ArbitraryPlaneDetector:
         if c4[0] > c3[0]: c3, c4 = c4, c3
         return [c1, c2, c3, c4]
 
-    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, viz=False):
+    def detect(self, frame, gaussian_kernel=(15, 15), alpha=20, beta=0.52, debug=False, viz=True):
         """
         Detects arbitrary planes in a frame.
           1. Canny Edge Detection on blurred grayscale image
@@ -98,7 +98,7 @@ class ArbitraryPlaneDetector:
           gaussian_kernal: Kernal to blur image by for Canny detection
           alpha: Minimum distance between two points to consider them different features
           beta: Minimum angle between two vectors to consider them different sides (default: ~30 degrees)
-          viz: Modifies the input frame to draw visual debuggers
+          debug: Modifies the input frame to draw visual debuggers
 
         Returns:
           An array of x-y pairs indicating the corners in CW order, starting from top-left
@@ -117,7 +117,7 @@ class ArbitraryPlaneDetector:
         if self.mergeMode:
             contours = collapseContours(contours)
 
-        if viz:
+        if debug:
             for i, contour in enumerate(contours):
                 # draw each separate contour a different color
                 c = int(float(i)/len(contours) * 200)
@@ -197,9 +197,10 @@ class ArbitraryPlaneDetector:
             rejects = self.filter_corners(approxCurve, alpha)
             approxCurve = np.array([pt for pt in approxCurve if tuple(pt) not in rejects])
 
-        cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
-        for pt in approxCurve:
-            cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
+        if viz:
+            cv2.drawContours(frame, bestContour, -1, (0, 255, 0), 10)
+            for pt in approxCurve:
+                cv2.circle(frame, tuple(pt), 4, (255, 0, 0))
 
         # Filter edges and approximate to best quadrilateral
         rejects = self.filter_edges(approxCurve, beta)

@@ -1,4 +1,3 @@
-from OpenGL.GL import *
 import numpy as np
 import vectormath
 

@@ -59,6 +59,7 @@ def main():
     parser.add_option("-o", "--object", metavar="FILE", dest="obj", help="the 3D OBJ file to overlay")
     parser.add_option("-d", "--drawstyle", dest="drawStyle", default="line_shader", help="3D Model draw style [line, line_shader, face_shader]")
     parser.add_option("-c", "--corners", dest="corners", action="store_true", help="show the corners of the tracked planar surface")
+    parser.add_option("-v", "--viz", dest="viz", action="store_false", default=True, help="hide focused contour outline")
     parser.add_option("-s", "--stream", dest="stream", action="store_true", help="stream live video and auto-detect planar surfaces")
     parser.add_option("-n", "--no-write", dest="nowrite", action="store_true", help="skip writing video file (for systems that don't support it)")
     parser.add_option("-k", "--kalman", dest="kalman", action="store_true", help="use a Kalman Filter to smooth predicted corners")
@@ -90,7 +91,7 @@ def main():
         detector = ArbitraryPlaneDetector(costMode=options.costMode, mergeMode=options.mergeMode)
         cv2.namedWindow("Stream Options")
         cv2.createTrackbar("Gaussian Kernel", 'Stream Options', 7, 15, null_callback) # Increments of 2
-        cv2.createTrackbar("Model Scale", 'Stream Options', 5, 20, null_callback)  # Increments of 0.1
+        cv2.createTrackbar("Model Scale", 'Stream Options', 5, 60, null_callback)  # Increments of 0.1
 
     else:
         if len(args) != 2:
@@ -124,7 +125,7 @@ def main():
             if not plane:
                 # Detect a plane
                 kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel", 'Stream Options') + 1
-                contour, corners = detector.detect(frame, gaussian_kernel=(kernel, kernel))
+                contour, corners = detector.detect(frame, gaussian_kernel=(kernel, kernel), viz=options.viz)
             else:
                 # Track current plane
                 homography = None
