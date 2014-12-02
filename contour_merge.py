@@ -89,6 +89,10 @@ def collapseContours(contours):
     passed in.
     """
 
+    # TODO: It would be nice if this didn't require the contours to be merged
+    # to be adjacent in the list, but I'm not sure how to do this well without
+    # incurring painful O(n^2) time.
+
     i = 1
     ret = contours[:1]
     for i in range(len(contours)):
