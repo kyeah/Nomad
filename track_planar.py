@@ -88,7 +88,7 @@ def main():
                       " merged")
     parser.add_option("-t", "--tracker", dest="trackMode", default="features",
                       help="which tracker to use for corner tracking " +
-                      "[features, flow, pointFlow]")
+                      "[features, flow, pointFlow, naive]")
     parser.add_option("-l", "--stall", dest="stall", action="store_true",
                       help="Stall video on each frame when not tracking")
     parser.add_option("-a", "--all", dest="show_all_contours", action="store_true",
@@ -152,14 +152,20 @@ def main():
             print "initializing writer with dimensions %d x %d" % dim
 
         if options.stream:
-            if not plane:
+            # the 'naive' tracking method is to not do any tracking at all but
+            # rather just run the detector on every frame and take those
+            # corners.
+            if not plane or options.trackMode == 'naive':
                 # Detect a plane
                 kernel = 2 * cv2.getTrackbarPos("Gaussian Kernel",
-                                                'Stream Options') + 1
-                contour, corners = detector.detect(frame, gaussian_kernel=(
-                                                   kernel, kernel),
-                                                   debug=options.show_all_contours,
-                                                   viz=options.viz)
+                                                "Stream Options") + 1
+                contour, corners = detector.detect(
+                    frame,
+                    gaussian_kernel=(kernel, kernel),
+                    debug=options.show_all_contours,
+                    viz=options.viz
+                )
+
             else:
                 # Track current plane
                 homography = None

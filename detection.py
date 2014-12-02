@@ -61,7 +61,7 @@ class ArbitraryPlaneDetector:
             if any(map(lambda pt: pt in rejects, tuplet)):
                 continue
 
-            is_coplanar, midpt = vmath.test_coplanar(triplet, beta)
+            is_coplanar, midpt = vmath.test_colinear(triplet, beta)
             if is_coplanar:
                 rejects.append(tuple(midpt))
 
