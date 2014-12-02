@@ -1,15 +1,16 @@
 import cv2
 import numpy as np
 
+
 class TrackedPlane:
-    
-    def __init__( self, init_corners, corners ):
+
+    def __init__(self, init_corners, corners):
         self.init_corners = init_corners
         self.corners = corners
-        
+
         # Planarize corners to estimate head-on plane
         p0, p1, p3 = init_corners[0], init_corners[1], init_corners[3]
-        w,h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
+        w, h = np.linalg.norm(p1[0] - p0[0]), np.linalg.norm(p3[1] - p0[1])
 
         self.planarized_corner_map = np.float32([
             p0,
@@ -17,6 +18,7 @@ class TrackedPlane:
             (p0[0] + w, p0[1] + h),
             (p0[0], p0[1] + h)
         ])
+
 
 # this is closely adapted from project 1
 class GenericTracker:
@@ -67,9 +69,11 @@ class GenericTracker:
         # compute homography
         srcPoints = np.array([kpA[match.queryIdx].pt for match in matches])
         dstPoints = np.array([kpB[match.trainIdx].pt for match in matches])
-        homography, _ = cv2.findHomography(srcPoints, dstPoints, cv2.RANSAC, 5.0)
+        homography, _ = cv2.findHomography(srcPoints, dstPoints, cv2.RANSAC,
+                                           5.0)
 
         return homography
+
 
 class OpticalFlowTracker:
 
@@ -79,28 +83,39 @@ class OpticalFlowTracker:
         self.pts = np.float32(pts)
 
         # Termination criteria: 10 iterations or moved at least 1pt
-        self.term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
+        self.term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                          10, 1)
 
         # Parameters for lucas kanade optical flow
-        self.lk_params = dict( winSize  = (15,15),
-                               maxLevel = 2,
-                               criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))    
+        self.lk_params = dict(winSize=(15, 15),
+                              maxLevel = 2,
+                              criteria = (cv2.TERM_CRITERIA_EPS |
+                                          cv2.TERM_CRITERIA_COUNT,
+                                          10, 0.03))
 
-class OpticalFlowHomographyTracker( OpticalFlowTracker ):
+
+class OpticalFlowHomographyTracker(OpticalFlowTracker):
 
     def track(self, gframe):
-        #p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
-        flow = cv2.calcOpticalFlowFarneback(self.old_gframe, gframe, 0.5, 3, 15, 3, 5, 1.2, 0)
-        p1 = np.float32(map(lambda p: [p[0] + flow[p[1], p[0], 0], p[1] + flow[p[1], p[0], 1]], self.pts))
+        # p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe,
+        # gframe, self.pts, None, **self.lk_params)
+        flow = cv2.calcOpticalFlowFarneback(self.old_gframe,
+                                            gframe, 0.5, 3, 15, 3,
+                                            5, 1.2, 0)
+        p1 = np.float32(map(lambda p: [p[0] + flow[p[1], p[0], 0],
+                        p[1] + flow[p[1], p[0], 1]], self.pts))
         homography, _ = cv2.findHomography(self.init_pts, p1, cv2.RANSAC, 5.0)
         self.pts = p1
         self.old_gframe = gframe
         return homography
 
-class OpticalFlowPointTracker( OpticalFlowTracker ):
+
+class OpticalFlowPointTracker(OpticalFlowTracker):
 
     def track(self, gframe):
-        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe, self.pts, None, **self.lk_params)
+        p1, st, err = cv2.calcOpticalFlowPyrLK(self.old_gframe, gframe,
+                                               self.pts, None,
+                                               **self.lk_params)
         self.pts = p1
         self.old_gframe = gframe
         return p1
