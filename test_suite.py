@@ -112,4 +112,16 @@ class TestContourMerge (TestCase) :
 		self.assertTrue(cm.contoursMergeable(contour1, contour2, merged_contours))
 
 
+	# test collapseContours() from contour_merge.py
+	def test_collapseContours (self) :
+		contour1 = np.array([[[0, 0]], [[75, 3]], [[150, 0]], [[149, 303]]])
+		contour2 = np.array([[[0, 300]], [[2, 160]], [[-2, 298]]])
+		contour_list = [contour1, contour2]
+		collapsed_contours = cm.collapseContours(contour_list)
+		expected_result = np.array([[[[0, 0]], [[75, 3]], [[150, 0]], [[149, 303]], [[0, 300]], [[2, 160]], [[-2, 298]]]])
+
+		self.assertTrue(np.array_equal(collapsed_contours, expected_result))
+
+
+
 main()
