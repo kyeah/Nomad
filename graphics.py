@@ -137,7 +137,7 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5, scale=0.5,
         vPoints = map(faceToVert, vert_ids)
         v = np.array(vPoints)
 
-        if None in vPoints:
+        if None not in vPoints:
             if draw_style == "face_shader":
                 cv2.fillConvexPoly(frame, v, (0, saturation * 255, 0))
             else:
