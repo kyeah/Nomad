@@ -6,13 +6,14 @@ import math
 import itertools
 from tracking import OpticalFlowHomographyTracker
 
+
 class PaintedObject():
     """
-    Paint overlays are implemented using the initial bounding rect as the mapping 
-    for our painted object to the scene. Dense optical flow is applied to the corners 
-    to get the homography mapping the original drawing to its scene position.
+    Paint overlays are implemented using the initial bounding rect as
+    the mapping for our painted object to the scene. Dense optical flow
+    is applied to the corners to get the homography mapping the original
+    drawing to its scene position.
     """
-
 
     def __init__(self, drawingOverlay, last_gframe):
         drawingOverlay[np.where((drawingOverlay == [0, 0, 255]).all(axis = 2))] = [0, 255, 255]
