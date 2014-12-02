@@ -12,10 +12,6 @@ class Filter:
         pass
 
 
-class MaxDifferenceFilter(Filter):
-    pass
-
-
 class KalmanFilter(Filter):
     inited = False
     kf = None
@@ -46,7 +42,7 @@ class KalmanFilter(Filter):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-        ])
+            ])
 
         self.measurement = cv.CreateMat(8, 1, cv.CV_32FC1)
 
@@ -91,11 +87,8 @@ class KalmanFilter(Filter):
 
         if not self.inited:
             self.inited = True
-
             self.setOldCvMat(self.kf.state_pre, measurementMatrix)
-
         else:
-
             self.setOldCvMat(self.measurement, measurementMatrix)
             cv.KalmanCorrect(self.kf, self.measurement)
 
