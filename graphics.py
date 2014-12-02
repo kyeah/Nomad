@@ -124,18 +124,20 @@ def drawOverlay(frame, init_corners, corners, obj, focal=0.5, scale=0.5,
         distort_coeff
     )[0].reshape(-1, 2)
 
-    # Draw object faces
+    # This helper function removes NaN points
     def faceToVert(idx):
         x, y = mapped_verts[idx - 1]
         if math.isnan(x) or math.isnan(y):
                 return None
         return (int(x), int(y))
 
+    # Draw object faces
     for face_obj in obj.faces:
         vert_ids, saturation = face_obj[0], face_obj[4]
-        v = np.array(map(faceToVert, vert_ids))
+        vPoints = map(faceToVert, vert_ids)
+        v = np.array(vPoints)
 
-        if all(vert is not None for vert in v):
+        if None in vPoints:
             if draw_style == "face_shader":
                 cv2.fillConvexPoly(frame, v, (0, saturation * 255, 0))
             else:
