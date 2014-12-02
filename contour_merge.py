@@ -113,7 +113,8 @@ def collapseContours(contours):
         combined = mergeContours(a, b)
         good = contoursMergeable(a, b, combined)
         if good:
-            print "combining contours %d and %d" % (len(ret)-1, i)
+            if (DEBUG) :
+                print "combining contours %d and %d" % (len(ret)-1, i)
             ret[-1] = combined
         else:
             ret.append(b)

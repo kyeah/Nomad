@@ -6,6 +6,7 @@ import numpy as np
 import miscmath as mm
 import contour_merge as cm
 import vectormath as vm
+import track_planar as tp
 
 
 class TestMiscMath (TestCase) :
@@ -139,26 +140,34 @@ class TestVectorMath (TestCase) :
 
 		self.assertTrue(angle_between - expected_result < .001)
 
-	# test test_coplanar() from vectormath.py
-	def test_test_coplanar (self) :
+	# test test_colinear() from vectormath.py
+	def test_test_colinear (self) :
 		p1 = np.array([1, 2])
-		p2 = np.array([1, 2])
-		p3 = np.array([2, 2])
+		p2 = np.array([1, 5])
+		p3 = np.array([8, 32])
 
-		boolean, middle_point = vm.test_coplanar((p1, p2, p3))
+		boolean, middle_point = vm.test_colinear((p1, p2, p3))
 
 		self.assertTrue(np.array_equal(middle_point, p2))
 
 	# test approx_quadrilateral() from vectormath.py
-	def test_approx_quadrilateral (self) :
-		p1 = np.array([0, 0])
-		p2 = np.array([10, 0])
-		p3 = np.array([10, 10])
-		corners = (p1, p2, p3)
-		result = vm.approx_quadrilateral(corners, 20)
-		expected_corners = (p1, p2, p3, np.array([0, 10]))
+	# def test_approx_quadrilateral (self) :
+	# 	p1 = np.array([0, 0])
+	# 	p2 = np.array([10, 0])
+	# 	p3 = np.array([10, 10])
+	# 	corners = (p1, p2, p3)
+	# 	result = vm.approx_quadrilateral(corners, 20)
+	# 	expected_corners = (p1, p2, p3, np.array([0, 10]))
 
-		self.assertTrue(np.array_equal(result, expected_corners))
+	# 	self.assertTrue(np.array_equal(result, expected_corners))
+
+
+	class TestTrackPlanar (TestCase) :
+
+		# test null_callback() from track_planar.py
+		def test_null_callback (self) :
+			result = tp.null_callback(1)
+			self.assertEqual(result, None)
 
 
 main()

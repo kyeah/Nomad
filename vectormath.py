@@ -5,6 +5,8 @@ def unit_vector(vector):
     """
     Returns the unit vector of the vector.
     """
+    if (len(vector) == 2 and vector[0] + vector[1] == 0) :
+        print("ZERO VECTOR")
     return vector / np.linalg.norm(vector)
 
 
@@ -24,13 +26,13 @@ def angle_between(v1, v2):
     return angle
 
 
-def test_coplanar(triplet, beta=0.52):
+def test_colinear(triplet, beta=0.52):
     p1, p2, p3 = triplet
     v1, v2 = unit_vector(p2 - p1), unit_vector(p3 - p2)
     angle = angle_between(v1, v2)
 
     # Angle, Reverse-angle Test
-    # If the three lines are roughly coplanar, find the
+    # If the three lines are roughly colinear, find the
     # longest line and return the middle point.
     if angle < beta or abs(np.pi - angle) < beta:
         distances = map(lambda idx: np.linalg.norm(
