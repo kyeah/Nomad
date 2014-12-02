@@ -91,6 +91,8 @@ def main():
                       "[features, flow, pointFlow]")
     parser.add_option("-l", "--stall", dest="stall", action="store_true",
                       help="Stall video on each frame when not tracking")
+    parser.add_option("-a", "--all", dest="show_all_contours", action="store_true",
+                      help="Show all contours detected")
 
     options, args = parser.parse_args()
 
@@ -156,6 +158,7 @@ def main():
                                                 'Stream Options') + 1
                 contour, corners = detector.detect(frame, gaussian_kernel=(
                                                    kernel, kernel),
+                                                   debug=options.show_all_contours,
                                                    viz=options.viz)
             else:
                 # Track current plane
