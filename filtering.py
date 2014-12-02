@@ -12,9 +12,6 @@ class Filter:
         pass
 
 
-class MaxDifferenceFilter(Filter):
-    pass
-
 
 class KalmanFilter(Filter):
     inited = False
