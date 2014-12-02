@@ -4,14 +4,22 @@ from miscmath import *
 import numpy as np
 import cv2
 
+DEBUG = False
 
-def appendContours(a, b, flipFirst=False, flipSecond=False):
+
+def appendContours(a, b, flipFirst=False, flipSecond=False, dbgMsg=None):
     """
     Helper function for mergeContours() doing the actual array combination.
     a and b are appended and the resulting list of points is returned. If
     flipFirst is True, a will be reversed before being appended. If flipSecond
     is True, b will be reversed before being appended.
     """
+
+    # print a debug message if one is passed in and the DEBUG flag is true
+    if DEBUG and dbgMsg:
+    	print "appendContours called with %s" % dbgMsg
+    	print "a:", a
+    	print "b: ", b
 
     ac = a[::-1] if flipFirst else a
     bc = b[::-1] if flipSecond else b
@@ -25,6 +33,11 @@ def mergeContours(a, b):
     in order to maintain correct ordering in the resulting contour.
     """
 
+    if DEBUG:
+    	print "mergeContours called with:"
+    	print "a: ", a
+    	print "b: ", b
+
     a1 = a[0, 0, 0], a[0, 0, 1]
     a2 = a[-1, 0, 0], a[-1, 0, 1]
     b1 = b[0, 0, 0], b[0, 0, 1]
@@ -37,13 +50,13 @@ def mergeContours(a, b):
     # over that map and execute the selected lambda against the contours.
     exprs = {
         dist(a2[0], a2[1], b1[0], b1[1]):
-            lambda a, b: appendContours(a, b),
+            lambda a, b: appendContours(a, b, dbgMsg="ab"),
         dist(b2[0], b2[1], a1[0], a1[1]):
-            lambda a, b: appendContours(b, a),
+            lambda a, b: appendContours(b, a, dbgMsg="ba"),
         dist(a1[0], a1[1], b1[0], b1[1]):
-            lambda a, b: appendContours(b, a, flipFirst=True),
+            lambda a, b: appendContours(b, a, dbgMsg="/ba", flipFirst=True),
         dist(b2[0], b2[1], a2[0], a2[1]):
-            lambda a, b: appendContours(b, a, flipSecond=True)
+            lambda a, b: appendContours(b, a, dbgMsg="b/a", flipSecond=True)
     }
     return min(exprs.items(), key=lambda it: it[0])[1](a, b)
 
@@ -95,7 +108,7 @@ def collapseContours(contours):
 
     i = 1
     ret = contours[:1]
-    for i in range(len(contours)):
+    for i in range(1, len(contours)):
         a, b = ret[-1], contours[i]
         combined = mergeContours(a, b)
         good = contoursMergeable(a, b, combined)
