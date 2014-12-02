@@ -6,6 +6,8 @@ import numpy as np
 import miscmath as mm
 import contour_merge as cm
 
+
+
 class TestMiscMath (TestCase) :
 
 	# test dist() from miscmath.py
@@ -17,6 +19,7 @@ class TestMiscMath (TestCase) :
 
 	def test_dist_3 (self) :
 		self.assertEqual(mm.dist(2, 2, 4, 5), math.sqrt(13))
+
 
 	# test avg() from miscmath.py
 	def test_avg_1 (self) :
@@ -48,14 +51,50 @@ class TestContourMerge (TestCase) :
 		contour = np.array([[[0, 0]], [[500, 0]], [[500, 1000]], [[0, 1000]]])
 		self.assertEqual(cm.contourRectangularity(contour), 0)
 
+
+	# test appendContours() from contour_merge.py
+	def test_appendContours_1 (self) :
+		contour1 = np.array([[[0, 0]], [[1, 1]], [[2, 2]]])
+		contour2 = np.array([[[3, 3]], [[4, 4]], [[5, 5]]])
+		appended_contours = cm.appendContours(contour1, contour2)
+		expected_result = np.array([[[0, 0]], [[1, 1]], [[2, 2]], [[3, 3]], [[4, 4]], [[5, 5]]])
+
+		self.assertTrue(np.array_equal(appended_contours, expected_result))
+
+	def test_appendContours_2 (self) :
+		contour1 = np.array([[[0, 0]], [[1, 1]], [[2, 2]]])
+		contour2 = np.array([[[3, 3]], [[4, 4]], [[5, 5]]])
+		appended_contours = cm.appendContours(contour1, contour2, True)
+		expected_result = np.array([[[2, 2]], [[1, 1]], [[0, 0]], [[3, 3]], [[4, 4]], [[5, 5]]])
+
+		self.assertTrue(np.array_equal(appended_contours, expected_result))
+
+	def test_appendContours_3 (self) :
+		contour1 = np.array([[[0, 0]], [[1, 1]], [[2, 2]]])
+		contour2 = np.array([[[3, 3]], [[4, 4]], [[5, 5]]])
+		appended_contours = cm.appendContours(contour1, contour2, False, True)
+		expected_result = np.array([[[0, 0]], [[1, 1]], [[2, 2]], [[5, 5]], [[4, 4]], [[3, 3]]])
+
+		self.assertTrue(np.array_equal(appended_contours, expected_result))
+
+	def test_appendContours_4 (self) :
+		contour1 = np.array([[[0, 0]], [[1, 1]], [[2, 2]]])
+		contour2 = np.array([[[3, 3]], [[4, 4]], [[5, 5]]])
+		appended_contours = cm.appendContours(contour1, contour2, True, True)
+		expected_result = np.array([[[2, 2]], [[1, 1]], [[0, 0]], [[5, 5]], [[4, 4]], [[3, 3]]])
+
+		self.assertTrue(np.array_equal(appended_contours, expected_result))
+
+
 	# test mergeContours() from contour_merge.py
 	def test_mergeContours (self) :
 		contour1 = np.array([[[0, 0]], [[75, 3]], [[150, 0]], [[149, 303]]])
 		contour2 = np.array([[[0, 300]], [[2, 160]], [[-2, 298]]])
 		merged_contours = cm.mergeContours(contour1, contour2)
-		expected_merged_contours = np.array([[[0, 0]], [[75, 3]], [[150, 0]], [[149, 303]], [[0, 300]], [[2, 160]], [[-2, 298]]])
+		expected_result = np.array([[[0, 0]], [[75, 3]], [[150, 0]], [[149, 303]], [[0, 300]], [[2, 160]], [[-2, 298]]])
 
-		self.assertTrue(np.array_equal(merged_contours, expected_merged_contours))
+		self.assertTrue(np.array_equal(merged_contours, expected_result))
+
 
 	# test contoursMergeable() from contour_merge.py
 	def test_contoursMergeable_1 (self) :
