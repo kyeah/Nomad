@@ -139,5 +139,27 @@ class TestVectorMath (TestCase) :
 
 		self.assertTrue(angle_between - expected_result < .001)
 
+	# test test_coplanar() from vectormath.py
+	def test_test_coplanar (self) :
+		p1 = np.array([1, 2])
+		p2 = np.array([1, 2])
+		p3 = np.array([2, 2])
+
+		boolean, middle_point = vm.test_coplanar((p1, p2, p3))
+
+		self.assertTrue(np.array_equal(middle_point, p2))
+
+	# test approx_quadrilateral() from vectormath.py
+	def test_approx_quadrilateral (self) :
+		p1 = np.array([0, 0])
+		p2 = np.array([10, 0])
+		p3 = np.array([10, 10])
+		p4 = np.array([-1, 11])
+		corners = (p1, p2, p3)
+		result = vm.approx_quadrilateral(corners, 20)
+		expected_corners = (p1, p2, p3, np.array([0, 10]))
+		print("result: ", result)
+		self.assertTrue(np.array_equal(result, expected_corners))
+
 
 main()
