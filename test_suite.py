@@ -5,7 +5,7 @@ import numpy as np
 
 import miscmath as mm
 import contour_merge as cm
-
+import vectormath as vm
 
 
 class TestMiscMath (TestCase) :
@@ -33,7 +33,6 @@ class TestMiscMath (TestCase) :
 	def test_avg_3 (self) :
 		data_points = [-10, 10, 1, 100,]
 		self.assertEqual(mm.avg(i for i in data_points), 25.25)
-
 
 
 class TestContourMerge (TestCase) :
@@ -122,6 +121,23 @@ class TestContourMerge (TestCase) :
 
 		self.assertTrue(np.array_equal(collapsed_contours, expected_result))
 
+
+class TestVectorMath (TestCase) :
+
+	# test unit_vector() from vectormath.py
+	def test_unit_vector (self) :
+		unit_vector = vm.unit_vector([3, 3, 3])
+		expected_result = [3.0/math.sqrt(27), 3.0/math.sqrt(27), 3.0/math.sqrt(27)]
+		self.assertTrue(np.array_equal(unit_vector, expected_result))
+
+	# test angle_between() from vectormath.py
+	def test_angle_between (self) :
+		vector1 = [0, 1, 0]
+		vector2 = [1, 1, 0]
+		angle_between = vm.angle_between(vector1, vector2)
+		expected_result = math.pi/4.0
+
+		self.assertTrue(angle_between - expected_result < .001)
 
 
 main()
