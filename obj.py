@@ -1,6 +1,11 @@
 import numpy as np
 import vectormath
 
+"""
+This file comes almost verbatim from http://www.pygame.org/wiki/OBJFileLoader
+Basically, it parses the 3D model from the OBJ file.
+"""
+
 
 class OBJ:
     def __init__(self, filename, swapyz=False, negateyz=True):
