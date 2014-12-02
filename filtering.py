@@ -3,14 +3,18 @@
 import cv2
 from cv2 import cv
 
+
 class Filter:
     def observe(self, measurement):
         pass
+
     def predict(self):
         pass
 
+
 class MaxDifferenceFilter(Filter):
     pass
+
 
 class KalmanFilter(Filter):
     inited = False
@@ -105,6 +109,7 @@ class KalmanFilter(Filter):
     # the main code uses a list of points rather than a flat measurement vector
     def observe(self, corners):
         self.observeInternal([coord for point in corners for coord in point])
+
     def predict(self):
         prediction = self.predictInternal()
         return [(prediction[2*i], prediction[2*i+1]) for i in range(4)]
