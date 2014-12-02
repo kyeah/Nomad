@@ -5,7 +5,7 @@ def unit_vector(vector):
     """
     Returns the unit vector of the vector.
     """
-    if (len(vector) == 2 and vector[0] + vector[1] == 0) :
+    if (len(vector) == 2 and vector[0] + vector[1] == 0):
         print("ZERO VECTOR")
     return vector / np.linalg.norm(vector)
 

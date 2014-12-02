@@ -17,9 +17,9 @@ def appendContours(a, b, flipFirst=False, flipSecond=False, dbgMsg=None):
 
     # print a debug message if one is passed in and the DEBUG flag is true
     if DEBUG and dbgMsg:
-    	print "appendContours called with %s" % dbgMsg
-    	print "a:", a
-    	print "b: ", b
+        print "appendContours called with %s" % dbgMsg
+        print "a:", a
+        print "b: ", b
 
     ac = a[::-1] if flipFirst else a
     bc = b[::-1] if flipSecond else b
@@ -34,9 +34,9 @@ def mergeContours(a, b):
     """
 
     if DEBUG:
-    	print "mergeContours called with:"
-    	print "a: ", a
-    	print "b: ", b
+        print "mergeContours called with:"
+        print "a: ", a
+        print "b: ", b
 
     a1 = a[0, 0, 0], a[0, 0, 1]
     a2 = a[-1, 0, 0], a[-1, 0, 1]
@@ -113,7 +113,7 @@ def collapseContours(contours):
         combined = mergeContours(a, b)
         good = contoursMergeable(a, b, combined)
         if good:
-            if (DEBUG) :
+            if DEBUG:
                 print "combining contours %d and %d" % (len(ret)-1, i)
             ret[-1] = combined
         else:
