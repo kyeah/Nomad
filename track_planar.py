@@ -71,7 +71,7 @@ def main():
                       "[line, line_shader, face_shader]")
     parser.add_option("-c", "--corners", dest="corners", action="store_true",
                       help="show the corners of the tracked planar surface")
-    parser.add_option("-v", "--viz", dest="viz", action="store_false",
+    parser.add_option("-v", "--no-viz", dest="viz", action="store_false",
                       default=True, help="hide focused contour outline")
     parser.add_option("-s", "--stream", dest="stream", action="store_true",
                       help="stream live video and auto-detect planar surfaces")

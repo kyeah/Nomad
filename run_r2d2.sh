@@ -4,7 +4,7 @@
 
 python track_planar.py \
     --stream \
-    --viz \
+    --no-viz \
     --stall \
     content/r2d2.mp4
     "$@"
