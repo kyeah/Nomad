@@ -157,7 +157,7 @@ class ArbitraryPlaneDetector:
 
         # this cost function estimates how similar a contour is to a rectangle
         def rectCost(contour):
-            return 1 / cv2.matchShapes(contour, rect, 2, 0.0)
+            return cv2.matchShapes(contour, rect, 2, 0.0)
 
         # this cost function is an average of the distances to the center of
         # the frame for all points in the contour

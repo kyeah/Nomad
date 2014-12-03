@@ -26,6 +26,8 @@ def framesFromVideo(video):
 
 
 def outputFilename(inputFilename):
+    return "blankpaper-sparse-flow.avi"
+
     if inputFilename == 0:
         return "test.avi"
 
@@ -135,6 +137,7 @@ def main():
     cv2.namedWindow("frame")
     cv2.setMouseCallback("frame", paint_mouse)
 
+    good = bad = wrong = 0
     for frameIndex, frame in enumerate(framesFromVideo(video)):
 
         print "processing frame %d" % frameIndex
@@ -260,9 +263,10 @@ def main():
             key = cv2.waitKey(1) & 0xFF
 
         if key == ord('p'):
-            paintedObjects.append(graphics.PaintedObject(
-                drawingOverlay, last_gframe))
-            drawingOverlay = np.zeros_like(drawingOverlay)
+            if any(drawingOverlay):
+                paintedObjects.append(graphics.PaintedObject(
+                    drawingOverlay, last_gframe))
+                drawingOverlay = np.zeros_like(drawingOverlay)
 
         if key == ord('l'):
             options.stall = not options.stall
@@ -301,6 +305,16 @@ def main():
             print "quitting early!"
             break
 
+        if key == ord('a'):
+            good += 1
+
+        if key == ord('d'):
+            bad += 1
+
+        if key == ord('w'):
+            wrong += 1
+
+    print good, bad, wrong
     video.release()
     video = None
     if not options.nowrite:
