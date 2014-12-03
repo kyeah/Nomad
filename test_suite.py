@@ -151,15 +151,15 @@ class TestVectorMath (TestCase) :
 		self.assertTrue(np.array_equal(middle_point, p2))
 
 	# test approx_quadrilateral() from vectormath.py
-	# def test_approx_quadrilateral (self) :
-	# 	p1 = np.array([0, 0])
-	# 	p2 = np.array([10, 0])
-	# 	p3 = np.array([10, 10])
-	# 	corners = (p1, p2, p3)
-	# 	result = vm.approx_quadrilateral(corners, 20)
-	# 	expected_corners = (p1, p2, p3, np.array([0, 10]))
+        def test_approx_quadrilateral (self) :
+	 	p1 = np.array([0, 0])
+	 	p2 = np.array([10, 0])
+	 	p3 = np.array([10, 10])
+	 	corners = (p1, p2, p3)
+	 	result = vm.approx_quadrilateral(corners, 20)
+	 	expected_corners = (p1, p2, p3, np.array([0, 10]))
 
-	# 	self.assertTrue(np.array_equal(result, expected_corners))
+	 	self.assertTrue(np.array_equal(result, expected_corners))
 
 
 	class TestTrackPlanar (TestCase) :

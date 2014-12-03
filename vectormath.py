@@ -60,10 +60,18 @@ def approx_quadrilateral(corners, alpha):
 
     elif len(corners) == 3:
         # Find hypotenuse, then estimate last corner
-        c1, c2, c3 = corners[0], corners[1], corners[2]
-        d1, d2, d3 = np.linalg.norm(
-            c2 - c1), np.linalg.norm(c3 - c1), np.linalg.norm(c3 - c2)
-        # todo: ...finish this
+        distances = map(lambda idx: np.linalg.norm(
+            corners[(idx+1) % 3] - corners[(idx+2) % 3]), xrange(3))
+
+        # Non-hypotenuse corner
+        index_mid = distances.index(max(distances))
+
+        # Hypotenuse endpoints
+        index_a, index_b = (index_mid + 1) % 3, (index_mid + 2) % 3
+        c1, c2, c3 = corners[index_a], corners[index_mid], corners[index_b]
+
+        last_corner = c1 + (c3 - c2)
+        corners = np.vstack([corners, [last_corner]])
 
     # Last resorts: if not enough points, replicate;
     # if too many points, truncate.
