@@ -15,7 +15,7 @@ import graphics
 drawing = False
 drawingOverlay = None
 displayFrame = None
-
+haveDrawing = False
 
 def framesFromVideo(video):
     while True:
@@ -44,10 +44,11 @@ def null_callback(x):
 
 
 def paint_mouse(event, x, y, flags, param):
-    global drawing, drawingOverlay, displayFrame
+    global drawing, drawingOverlay, displayFrame, haveDrawing
 
     if event == cv2.EVENT_LBUTTONDOWN:
         drawing = True
+        haveDrawing = True
     elif event == cv2.EVENT_LBUTTONUP:
         drawing = False
 
@@ -58,7 +59,7 @@ def paint_mouse(event, x, y, flags, param):
 
 
 def main():
-    global drawing, drawingOverlay, displayFrame
+    global drawing, drawingOverlay, displayFrame, haveDrawing
 
     overlayTest = False
 
@@ -261,10 +262,11 @@ def main():
             key = cv2.waitKey(1) & 0xFF
 
         if key == ord('p'):
-            if any(drawingOverlay):
+            if haveDrawing:
                 paintedObjects.append(graphics.PaintedObject(
                     drawingOverlay, last_gframe))
                 drawingOverlay = np.zeros_like(drawingOverlay)
+                haveDrawing = False
 
         if key == ord('l'):
             options.stall = not options.stall
