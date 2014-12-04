@@ -17,6 +17,7 @@ drawingOverlay = None
 displayFrame = None
 haveDrawing = False
 
+
 def framesFromVideo(video):
     while True:
         ret, frame = video.read()
