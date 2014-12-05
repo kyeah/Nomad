@@ -39,4 +39,5 @@ More information about our technical system design can be found in OVERVIEW.pdf,
 ---------------------------------
 
 Kevin Yeh, Matt Broussard, Kaelin Hooper, Conner Collins 
+
 3D Reconstruction with Computer Vision 2014
