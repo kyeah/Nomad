@@ -1,7 +1,7 @@
 Nomad
 =========
 
-A motion tweening and 3D augmented reality system design to utilize 3D information recovered from a single 2D image to insert painted structures and mesh models automatically into the image and into subsequent frames of video. 
+A motion tweening and 3D augmented reality system designed to utilize 3D information recovered from a single 2D image to insert painted structures and mesh models automatically into the image and into subsequent frames of video. 
 
 The goals of this project were twofold:
 
