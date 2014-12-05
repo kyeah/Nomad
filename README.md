@@ -3,8 +3,6 @@ Nomad
 
 A motion tweening and 3D augmented reality system design to utilize 3D information recovered from a single 2D image to insert painted structures and mesh models automatically into the image and into subsequent frames of video. 
 
-![Longhorn Detection](/res/longhorn_detection.png)
-
 The goals of this project were twofold:
 
 1. To replicate the parallel tracking behavior demonstrated in the [2007 Klein-Murray PTAM paper](http://www.robots.ox.ac.uk/~gk/publications/KleinMurray2007ISMAR.pdf) using analysis of a single two-dimensional image for multiple-surface detection.
@@ -38,12 +36,7 @@ More information about our technical system design can be found in OVERVIEW.pdf,
 
 ![](/res/paperman.gif)
 
-:------------------------------:|:-----------------------------:
-![](/res/blank_sparse_flow.gif) | ![](/res/cello_map_small.gif)
-![](/res/r2d2.gif)              | ![](/res/r2d2_2.gif)
-![](/res/sidewalk.gif)          | ![](/res/paperman.gif)
-![]()                           | ![]()
-
 ---------------------------------
 
-Kevin Yeh, Matt Broussard, Kaelin Hooper, Conner Collins (3D Reconstruction with Computer Vision 2014)
+Kevin Yeh, Matt Broussard, Kaelin Hooper, Conner Collins 
+3D Reconstruction with Computer Vision 2014
