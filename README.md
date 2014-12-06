@@ -20,9 +20,9 @@ More information about our technical system design can be found in OVERVIEW.pdf,
 
 ![](/res/blank_sparse_flow.gif)
 
-![](/res/longhorn.gif)
-
 ![](/res/sidewalk.gif)
+
+![](/res/longhorn.gif)
 
 # Feature-based Surface Tracking
 
